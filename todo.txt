@@ -1,0 +1,80 @@
+
+Create macro editor window
+	setlocal buftype=nofile
+	setlocal bufhidden=delete
+	setlocal noswapfile
+
+Autocmd <buffer> or <buffer=99>
+	BufNewFile
+
+Read config from file on:
+	plugin start
+	autocmd VimEnter
+	ReadConfig()
+
+Save macros to file on:
+	SaveConfig()
+	autocmd QuitPre
+
+Save macros to memory on:
+	SaveToMemory()
+	autocmd WinLeave
+	keypress q, etc
+
+Config
+	SplitVertical   = 1
+	SplitHorizontal = 0
+	MacroFile       = ~/.vim/macros.vim
+	MagicMapChar    = 'a' => qa to start
+	RegisterList    = 'abcdefghij'
+	MaxMacros       = 25
+	Show help       = 1
+	ShowLabels      = 1
+
+Macro window mappings
+	mustn't interfere with navigation or editing
+
+	q     quit
+	<esc> quit
+	<f1>  help
+	c     commit changes to memory
+	s     save changes to file
+	r     read macros from file
+	p     pin macro to register (move skips this reg)
+	x     execute macro on alternate buffer
+	<cr>  execute
+
+Let the user 'source' the macro files?
+	autocmd SourcePre	before sourcing a Vim script
+	autocmd SourceCmd	before sourcing a Vim script |Cmd-event|
+
+Functions
+	ReadMacrosFromFile([file])
+	SaveMacrosToFile([file])
+
+Like git rebase:
+	reorder list
+	add items
+	delete items
+	edit items
+	commit
+		sync to memory registers
+		fix regnames
+		mark as not modified
+		ignore comments
+		ignore blank lines
+
+Trap autocmds, then auto-commit to memory (and fix reg names)
+	InsertEnter
+	InsertChange
+	InsertLeave
+	use undotree() info to detect changes?
+
+How can I detect other changes to registers?
+	Probably can't
+	Just sync internal list to registers before every function call
+
+Syntax for macro window
+	^[-a-zA-Z]\**	.*
+	match regex to register config
+
