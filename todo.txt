@@ -51,6 +51,8 @@ Let the user 'source' the macro files?
 Functions
 	ReadMacrosFromFile([file])
 	SaveMacrosToFile([file])
+	PrintMacros()
+	WipeRegisters([list])
 
 Like git rebase:
 	reorder list
@@ -77,4 +79,16 @@ How can I detect other changes to registers?
 Syntax for macro window
 	^[-a-zA-Z]\**	.*
 	match regex to register config
+
+Clear other mappings?
+	mapclear  <buffer>
+	nmapclear <buffer>
+	vmapclear <buffer>
+	xmapclear <buffer>
+	smapclear <buffer>
+	omapclear <buffer>
+	mapclear  <buffer>
+	imapclear <buffer>
+	lmapclear <buffer>
+	cmapclear <buffer>
 
