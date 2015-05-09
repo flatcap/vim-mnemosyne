@@ -5,6 +5,11 @@
 " License:      GPLv3 <http://fsf.org/>
 " Version:      1.0
 
+" if (exists ('g:loaded_mnemosyne') || &cp || (v:version < 700))
+" 	finish
+" endif
+" let g:loaded_mnemosyne = 1
+
 let s:window_name = '__mnemosyne__'
 
 " Set some default values
@@ -79,10 +84,10 @@ function! SetRegisters()
 		if (len (reg) == 1)
 			call setreg (reg, macro)
 		endif
-		echom printf ("%d : %s : %s", i, reg, macro)
-		if ( (i == g:mnemosyne_max_macros) || (i == len (g:mnemosyne_register_list)))
-			echom '-------------------'
-		endif
+		" echom printf ("%d : %s : %s", i, reg, macro)
+		" if ( (i == g:mnemosyne_max_macros) || (i == len (g:mnemosyne_register_list)))
+		" 	echom '-------------------'
+		" endif
 	endfor
 
 endfunction
@@ -146,24 +151,32 @@ function! mnemosyne#CloseMacroWindow()
 	endif
 endfunction
 
-function! mnemosyne#ListMacros()
-	let l:old_more = &l:more
-	let &l:more = 1
+function! mnemosyne#ShowRegisters()
+	echo 'Mnemosyne registers (' . len(g:mnemosyne_registers) . ' entries):'
 
-	echohl MoreMsg
-	echom 'Mnemosyne registers:'
-	echohl none
+	" XXX sync registers to variable
 
-	let registers = split ('abcdefghij', '\zs')
+	let registers = split (g:mnemosyne_register_list, '\zs')
 	for i in registers
 		let contents = getreg (i)
 		let contents = substitute (contents, ' ', '␣', 'g')
 		let contents = substitute (contents, '\%' . (&columns - 20) . 'v.*', ' ⋯', '')
-		let pinned = (i == 'f') ? '*' : ' '
-		echom printf (' %s%s : %s', i, pinned, contents)
+		echom printf ('  %s : %s', i, contents)
 	endfor
+endfunction
 
-	let &l:more = l:old_more
+function! mnemosyne#ShowAll()
+	echo 'Mnemosyne registers (' . len(g:mnemosyne_registers) . ' entries):'
+
+	" XXX sync registers to variable
+
+	for i in sort (keys (g:mnemosyne_registers), 's:num_compare')
+		let name = (i < len(g:mnemosyne_register_list)) ? g:mnemosyne_register_list[i] : '-'
+		let contents = g:mnemosyne_registers[i]
+		let contents = substitute (contents, ' ', '␣', 'g')
+		let contents = substitute (contents, '\%' . (&columns - 20) . 'v.*', ' ⋯', '')
+		echo printf ('  %s : %s', name, contents)
+	endfor
 endfunction
 
 function! mnemosyne#PinMacro (name, pin)
@@ -185,5 +198,5 @@ map <F8>  :call mnemosyne#SaveMacrosToFile()<cr>
 map <F9>  :call SetRegisters()<cr>
 map <F10> :call mnemosyne#CloseMacroWindow()<cr>
 map <F11> :call mnemosyne#OpenMacroWindow (1)<cr>
-map <F12> :call mnemosyne#ListMacros()<cr>
+map <F12> :call mnemosyne#ShowAll()<cr>
 
