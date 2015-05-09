@@ -1,4 +1,4 @@
-" Mnemosyne - Macro Master
+" Mnemosyne - Macro Mistress
 "	<F1> - help
 "	q - quit
 "	...

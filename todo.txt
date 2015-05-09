@@ -24,12 +24,6 @@ Save macros to memory on:
 Config
 	SplitVertical   = 1
 	SplitHorizontal = 0
-	MacroFile       = ~/.vim/macros.vim
-	MagicMapChar    = 'a' => qa to start
-	RegisterList    = 'abcdefghij'
-	MaxMacros       = 25
-	Show help       = 1
-	ShowLabels      = 1
 
 Macro window mappings
 	mustn't interfere with navigation or editing
@@ -40,6 +34,7 @@ Macro window mappings
 	c     commit changes to memory
 	s     save changes to file
 	r     read macros from file
+	r     refresh?
 	p     pin macro to register (move skips this reg)
 	x     execute macro on alternate buffer
 	<cr>  execute
@@ -49,9 +44,6 @@ Let the user 'source' the macro files?
 	autocmd SourceCmd	before sourcing a Vim script |Cmd-event|
 
 Functions
-	ReadMacrosFromFile([file])
-	SaveMacrosToFile([file])
-	PrintMacros()
 	WipeRegisters([list])
 
 Like git rebase:
@@ -76,19 +68,26 @@ How can I detect other changes to registers?
 	Probably can't
 	Just sync internal list to registers before every function call
 
+How can multiple running copies of vim coordinate?
+	cf wviminfo, rviminfo
+	need to delete the buffer after closing to prevent swapfile collision
+
 Syntax for macro window
 	^[-a-zA-Z]\**	.*
 	match regex to register config
 
 Clear other mappings?
 	mapclear  <buffer>
-	nmapclear <buffer>
-	vmapclear <buffer>
-	xmapclear <buffer>
-	smapclear <buffer>
-	omapclear <buffer>
-	mapclear  <buffer>
+	cmapclear <buffer>
 	imapclear <buffer>
 	lmapclear <buffer>
-	cmapclear <buffer>
+	nmapclear <buffer>
+	omapclear <buffer>
+	smapclear <buffer>
+	vmapclear <buffer>
+	xmapclear <buffer>
+
+" nnoremap qa :call MoveRegisters()<cr>qa
+
+Option: move pinned macros to end of list
 
