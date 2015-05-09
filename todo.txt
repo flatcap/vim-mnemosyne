@@ -93,3 +93,9 @@ Option: move pinned macros to end of list
 
 to prevent accidents?
 	map q <nop>
+no, need to trap it so I know when a recording finishes
+
+need to map
+	qa startmacro() rotate first
+	qA startmacro() no rotate
+
