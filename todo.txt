@@ -91,3 +91,5 @@ Clear other mappings?
 
 Option: move pinned macros to end of list
 
+to prevent accidents?
+	map q <nop>
