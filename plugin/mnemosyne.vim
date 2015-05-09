@@ -8,21 +8,13 @@
 " Set some default values
 if (!exists ('g:mnemosyne_macro_file'))     | let g:mnemosyne_macro_file     = '~/.vim/macros.vim' | endif
 if (!exists ('g:mnemosyne_magic_map_char')) | let g:mnemosyne_magic_map_char = 'a'                 | endif
-if (!exists ('g:mnemosyne_max_macros'))     | let g:mnemosyne_max_macros     = 25                  | endif
+if (!exists ('g:mnemosyne_max_macros'))     | let g:mnemosyne_max_macros     = 20                  | endif
 if (!exists ('g:mnemosyne_register_list'))  | let g:mnemosyne_register_list  = 'abcdefghij'        | endif
 if (!exists ('g:mnemosyne_show_help'))      | let g:mnemosyne_show_help      = 1                   | endif
 if (!exists ('g:mnemosyne_show_labels'))    | let g:mnemosyne_show_labels    = 1                   | endif
 if (!exists ('g:mnemosyne_split_vertical')) | let g:mnemosyne_split_vertical = 1                   | endif
 
 let s:window_name = '__mnemosyne__'
-
-function! s:set_registers()
-	let @a = 'apple'
-	let @b = 'banana'
-	let @c = 'cherry'
-	let @d = 'damson'
-	let @e = 'elderberry'
-endfunction
 
 function! s:move_registers()
 	let @f = @e
@@ -128,6 +120,7 @@ function! mnemosyne#PinMacro (name, pin)
 endfunction
 
 
+map <F9> :call SetRegisters()<cr>
 map <F10> :call mnemosyne#CloseMacroWindow()<cr>
 map <F11> :call mnemosyne#OpenMacroWindow(1)<cr>
 map <F12> :call mnemosyne#ListMacros()<cr>
@@ -166,7 +159,30 @@ let g:mnemosyne_registers = {
 \ }
 
 function! SetRegisters()
+	let num = len(g:mnemosyne_registers)
+
+	let key_list = sort(keys(g:mnemosyne_registers), "NumCompare")
+
+	for i in range(1, num)
+		if (i <= len(g:mnemosyne_register_list))
+			let reg = g:mnemosyne_register_list[i-1]
+		elseif (i <= g:mnemosyne_max_macros)
+			let reg = 'unnamed'
+		else
+			let reg = 'lost'
+		endif
+		let reg_idx = key_list[i-1]
+		let macro = g:mnemosyne_registers[reg_idx]
+		if (len(reg) == 1)
+			call setreg (reg, macro)
+		endif
+		echom printf ("%d : %s : %s", i, reg, macro)
+		if ((i == g:mnemosyne_max_macros) || (i == len(g:mnemosyne_register_list)))
+			echom '-------------------'
+		endif
+	endfor
 
 endfunction
 
 " echo sort(keys(g:mnemosyne_registers), "NumCompare")
+
