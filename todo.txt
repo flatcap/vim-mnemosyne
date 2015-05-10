@@ -105,3 +105,6 @@ ToggleMacroWindow()
 make the macro window modal
 	on open - replace current buffer
 	on close - restore buffer
+
+don't rotate empty registers?
+

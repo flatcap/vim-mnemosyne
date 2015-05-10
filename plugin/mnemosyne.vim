@@ -216,6 +216,8 @@ function! ShowRegisters()
 	let registers = split (g:mnemosyne_register_list, '\zs')
 	for i in registers
 		let contents = getreg (i)
+		let contents = substitute (contents, nr2char(10), '^J', 'g')
+		let contents = substitute (contents, nr2char(13), '^M', 'g')
 		let contents = substitute (contents, ' ', '␣', 'g')
 		let contents = substitute (contents, '\%' . (&columns - 20) . 'v.*', ' ⋯', '')
 		echom printf ('  %s : %s', i, contents)
@@ -229,6 +231,8 @@ function! ShowAll()
 	for i in sort (keys (g:mnemosyne_registers), 's:num_compare')
 		let name = (i < len(g:mnemosyne_register_list)) ? g:mnemosyne_register_list[i] : '-'
 		let contents = g:mnemosyne_registers[i].macro
+		let contents = substitute (contents, nr2char(10), '^J', 'g')
+		let contents = substitute (contents, nr2char(13), '^M', 'g')
 		let contents = substitute (contents, ' ', '␣', 'g')
 		let contents = substitute (contents, '\%' . (&columns - 20) . 'v.*', ' ⋯', '')
 		let flags = (exists ('g:mnemosyne_registers[i].pinned')) ? '*' : ' '
