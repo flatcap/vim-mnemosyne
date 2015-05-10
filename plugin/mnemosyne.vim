@@ -40,17 +40,23 @@ function! s:create_mappings()
 endfunction
 
 function! s:populate_macro_window()
-	call setline (1, '" Mnemosyne.vim - Mistress of Macros')
-	let registers = split ('abcdefghij', '\zs')
 	let old_paste = &paste
 	setlocal paste
-	for i in registers
-		execute 'normal! o' . i . "\t"
-		let contents = getreg (i)
-		if (len (contents) > 0)
-			execute 'normal! "'.i.'p'
+
+	call setline (1, '" Mnemosyne.vim - Mistress of Macros')
+
+	for i in sort (keys (g:mnemosyne_registers), 's:num_compare')
+		let name = (i < len(g:mnemosyne_register_list)) ? g:mnemosyne_register_list[i] : '-'
+		if (exists ('g:mnemosyne_registers[i].pinned'))
+			let name .= '*'
+		endif
+		execute 'normal! o' . name . "\t"
+		let @" = g:mnemosyne_registers[i].macro
+		if (len (@") > 0)
+			execute 'normal! ""p'
 		endif
 	endfor
+
 	let &paste = old_paste
 endfunction
 
@@ -80,16 +86,11 @@ function! SetRegisters()
 			let reg = 'lost'
 		endif
 		let reg_idx = key_list[i-1]
-		let macro = g:mnemosyne_registers[reg_idx]
+		let macro = g:mnemosyne_registers[reg_idx].macro
 		if (len (reg) == 1)
 			call setreg (reg, macro)
 		endif
-		" echom printf ("%d : %s : %s", i, reg, macro)
-		" if ( (i == g:mnemosyne_max_macros) || (i == len (g:mnemosyne_register_list)))
-		" 	echom '-------------------'
-		" endif
 	endfor
-
 endfunction
 
 function! ReadMacrosFromFile (...)
@@ -98,20 +99,39 @@ function! ReadMacrosFromFile (...)
 	let list = readfile (file)
 
 	let num = len (list)
+	let index = 0
 	for i in range (num)
-		let g:mnemosyne_registers[i] = list[i]
-		" let reg = nr2char (char2nr ('a')+i)
-		" call setreg (reg, list[i])
+		let line = list[i]
+		if (line =~ '^\s*"')
+			continue
+		endif
+
+		let flags = substitute (line, '\t.*', '', '')
+		let macro = substitute (line, '^.\{-\}\t', '', '')
+
+		let entry = { 'macro' : macro }
+
+		if (flags =~? 'p')
+			let entry.pinned = 1
+			" echo entry
+		endif
+
+		let g:mnemosyne_registers[index] = entry
+		let index += 1
 	endfor
 	call SetRegisters()
 endfunction
 
 function! SaveMacrosToFile (...)
 	let file = (a:0 > 0) ? a:1 : g:mnemosyne_macro_file
-	let list = []
+
+	let list = [
+		\ '" Mnemosyne.vim - Mistress of Macros',
+		\ '" https://github.com/flatcap/vim-mnemosyne'
+	\ ]
 
 	for i in sort (keys (g:mnemosyne_registers), 's:num_compare')
-		let list += [ g:mnemosyne_registers[i] ]
+		let list += [ "\t" . g:mnemosyne_registers[i] ]
 	endfor
 
 	let file = expand (file)
@@ -128,7 +148,7 @@ function! OpenMacroWindow (...)
 
 	let vert = (a:0 > 0) ? a:1 : g:mnemosyne_split_vertical
 
-	let cmd = 'new ' . s:window_name
+	let cmd = 'silent new ' . s:window_name
 	if (vert == 1)
 		let cmd = 'vertical ' . cmd
 	endif
@@ -138,10 +158,12 @@ function! OpenMacroWindow (...)
 	setlocal bufhidden=wipe
 	setlocal noswapfile
 	setlocal filetype=vim
-	setlocal list
+	" setlocal list
 
 	call s:populate_macro_window()
 	call s:create_mappings()
+
+	normal 2G
 endfunction
 
 function! CloseMacroWindow()
@@ -151,7 +173,7 @@ function! CloseMacroWindow()
 	endif
 endfunction
 
-function ToggleMacroWindow()
+function! ToggleMacroWindow()
 	let win_num = s:find_window_number()
 	if (win_num < 0)
 		call OpenMacroWindow()
@@ -181,10 +203,11 @@ function! ShowAll()
 
 	for i in sort (keys (g:mnemosyne_registers), 's:num_compare')
 		let name = (i < len(g:mnemosyne_register_list)) ? g:mnemosyne_register_list[i] : '-'
-		let contents = g:mnemosyne_registers[i]
+		let contents = g:mnemosyne_registers[i].macro
 		let contents = substitute (contents, ' ', '␣', 'g')
 		let contents = substitute (contents, '\%' . (&columns - 20) . 'v.*', ' ⋯', '')
-		echo printf ('  %s : %s', name, contents)
+		let flags = (exists ('g:mnemosyne_registers[i].pinned')) ? '*' : ' '
+		echo printf ('  %s%s : %s', name, flags, contents)
 	endfor
 endfunction
 
@@ -202,10 +225,12 @@ endfunction
 
 call ReadMacrosFromFile()
 
-map <leader>mr :call ReadMacrosFromFile()<cr>
-map <leader>ms :call SaveMacrosToFile()<cr>
-map <leader>mc :call CloseMacroWindow()<cr>
-map <leader>mo :call OpenMacroWindow(1)<cr>
-map <leader>mt :call ToggleMacroWindow()<cr>
-map <leader>ml :call ShowAll()<cr>
+nnoremap <silent> <leader>mr :call ReadMacrosFromFile()<cr>
+nnoremap <silent> <leader>ms :call SaveMacrosToFile()<cr>
+nnoremap <silent> <leader>mc :call CloseMacroWindow()<cr>
+nnoremap <silent> <leader>mo :call OpenMacroWindow()<cr>
+nnoremap <silent> <leader>mt :call ToggleMacroWindow()<cr>
+nnoremap <silent> <leader>ml :call ShowAll()<cr>
+
+nnoremap <silent> <F12> :update<cr>:source plugin/mnemosyne.vim<cr>
 

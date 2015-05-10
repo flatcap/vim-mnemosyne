@@ -24,6 +24,7 @@ Save macros to memory on:
 Config
 	SplitVertical   = 1
 	SplitHorizontal = 0
+	verbose errors
 
 Macro window mappings
 	mustn't interfere with navigation or editing
@@ -101,3 +102,6 @@ need to map
 
 ToggleMacroWindow()
 
+make the macro window modal
+	on open - replace current buffer
+	on close - restore buffer
