@@ -64,8 +64,27 @@ function! s:find_window_number()
 endfunction
 
 
+function! SyncRegistersToVar()
+	let num = len (g:mnemosyne_registers)
+
+	let key_list = sort (keys (g:mnemosyne_registers), "s:num_compare")
+
+	for i in range (1, num)
+		if (i > len (g:mnemosyne_register_list))
+			break
+		endif
+
+		let reg = g:mnemosyne_register_list[i-1]
+		let reg_idx = key_list[i-1]
+		let macro = getreg (reg)
+		let g:mnemosyne_registers[reg_idx].macro = macro
+	endfor
+endfunction
+
 function! MoveRegisters()
 	let prev = ''
+
+	call SyncRegistersToVar()
 
 	for i in sort (keys (g:mnemosyne_registers), 's:num_compare')
 		if (exists ('g:mnemosyne_registers[i].pinned'))
@@ -191,10 +210,9 @@ function! ToggleMacroWindow()
 endfunction
 
 function! ShowRegisters()
+	call SyncRegistersToVar()
+
 	echo 'Mnemosyne registers (' . len(g:mnemosyne_registers) . ' entries):'
-
-	" XXX sync registers to variable
-
 	let registers = split (g:mnemosyne_register_list, '\zs')
 	for i in registers
 		let contents = getreg (i)
@@ -205,10 +223,9 @@ function! ShowRegisters()
 endfunction
 
 function! ShowAll()
+	call SyncRegistersToVar()
+
 	echo 'Mnemosyne registers (' . len(g:mnemosyne_registers) . ' entries):'
-
-	" XXX sync registers to variable
-
 	for i in sort (keys (g:mnemosyne_registers), 's:num_compare')
 		let name = (i < len(g:mnemosyne_register_list)) ? g:mnemosyne_register_list[i] : '-'
 		let contents = g:mnemosyne_registers[i].macro
@@ -220,6 +237,25 @@ function! ShowAll()
 endfunction
 
 function! PinMacro (name, pin)
+	let i = stridx (g:mnemosyne_register_list, a:name)
+	if (i < 0)
+		let i = a:name
+	endif
+
+	if (!exists ('g:mnemosyne_registers[i]'))
+		echohl error
+		echom 'NO MATCH'
+		echohl none
+		return
+	endif
+	echom 'MATCH'
+	echo g:mnemosyne_registers[i]
+	if (a:pin)
+		let g:mnemosyne_registers[i].pinned = 1
+	else
+		unlet g:mnemosyne_registers[i].pinned
+	endif
+	echo g:mnemosyne_registers[i]
 endfunction
 
 
@@ -235,11 +271,15 @@ call ReadMacrosFromFile()
 
 nnoremap <silent> <leader>mc :call CloseMacroWindow()<cr>
 nnoremap <silent> <leader>ml :call ShowAll()<cr>
+" nnoremap <silent> <leader>ml :call ShowRegisters()<cr>
 nnoremap <silent> <leader>mm :call MoveRegisters()<cr>
 nnoremap <silent> <leader>mo :call OpenMacroWindow()<cr>
 nnoremap <silent> <leader>mr :call ReadMacrosFromFile()<cr>
 nnoremap <silent> <leader>ms :call SaveMacrosToFile()<cr>
 nnoremap <silent> <leader>mt :call ToggleMacroWindow()<cr>
+nnoremap <silent> <leader>mv :call SyncRegistersToVar()<cr>
 
 nnoremap <silent> <F12> :update<cr>:source plugin/mnemosyne.vim<cr>
+
+nnoremap qa :call MoveRegisters()<cr>qa
 
