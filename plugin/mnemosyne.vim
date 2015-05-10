@@ -27,8 +27,15 @@ function! s:num_compare (i1, i2)
 	return a:i1 - a:i2
 endfunction
 
+function! WindowTogglePinned()
+	let line = getline('.')
+	let line = substitute (line, '\v^(\i)\**	(.*)', '\1*\2', '')
+	call setline (1, '" Mnemosyne.vim - Mistress of Macros')
+endfunction
+
 function! s:create_mappings()
 	nnoremap <buffer> <silent> q :call CloseMacroWindow()<cr>
+	nnoremap <buffer> <silent> \p :call WindowTogglePinned()<cr>
 endfunction
 
 function! s:populate_macro_window()
@@ -212,15 +219,20 @@ endfunction
 function! ShowRegisters()
 	call SyncRegistersToVar()
 
-	echo 'Mnemosyne registers (' . len(g:mnemosyne_registers) . ' entries):'
-	let registers = split (g:mnemosyne_register_list, '\zs')
-	for i in registers
-		let contents = getreg (i)
+	let num = len(g:mnemosyne_register_list)
+	echo 'Mnemosyne registers (' . num . ' entries):'
+	for i in sort (keys (g:mnemosyne_registers), 's:num_compare')
+		if (i >= num)
+			break
+		endif
+		let name = g:mnemosyne_register_list[i]
+		let contents = g:mnemosyne_registers[i].macro
 		let contents = substitute (contents, nr2char(10), '^J', 'g')
 		let contents = substitute (contents, nr2char(13), '^M', 'g')
 		let contents = substitute (contents, ' ', '␣', 'g')
 		let contents = substitute (contents, '\%' . (&columns - 20) . 'v.*', ' ⋯', '')
-		echom printf ('  %s : %s', i, contents)
+		let flags = (exists ('g:mnemosyne_registers[i].pinned')) ? '*' : ' '
+		echo printf ('  %s%s : %s', name, flags, contents)
 	endfor
 endfunction
 
@@ -274,8 +286,8 @@ endfunction
 call ReadMacrosFromFile()
 
 nnoremap <silent> <leader>mc :call CloseMacroWindow()<cr>
-nnoremap <silent> <leader>ml :call ShowAll()<cr>
-" nnoremap <silent> <leader>ml :call ShowRegisters()<cr>
+nnoremap <silent> <leader>ml :call ShowRegisters()<cr>
+nnoremap <silent> <leader>mL :call ShowAll()<cr>
 nnoremap <silent> <leader>mm :call MoveRegisters()<cr>
 nnoremap <silent> <leader>mo :call OpenMacroWindow()<cr>
 nnoremap <silent> <leader>mr :call ReadMacrosFromFile()<cr>
@@ -285,5 +297,5 @@ nnoremap <silent> <leader>mv :call SyncRegistersToVar()<cr>
 
 nnoremap <silent> <F12> :update<cr>:source plugin/mnemosyne.vim<cr>
 
-nnoremap qa :call MoveRegisters()<cr>qa
-
+nnoremap <silent> qa :call MoveRegisters()<cr>qa
+nnoremap <silent> q  q:call SyncRegistersToVar()<cr>

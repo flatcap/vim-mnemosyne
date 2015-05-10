@@ -1,9 +1,4 @@
 
-Create macro editor window
-	setlocal buftype=nofile
-	setlocal bufhidden=delete
-	setlocal noswapfile
-
 Autocmd <buffer> or <buffer=99>
 	BufNewFile
 
@@ -88,8 +83,6 @@ Clear other mappings?
 	vmapclear <buffer>
 	xmapclear <buffer>
 
-" nnoremap qa :call MoveRegisters()<cr>qa
-
 Option: move pinned macros to end of list
 
 to prevent accidents?
@@ -100,11 +93,11 @@ need to map
 	qa startmacro() rotate first
 	qA startmacro() no rotate
 
-ToggleMacroWindow()
-
 make the macro window modal
 	on open - replace current buffer
 	on close - restore buffer
+	don't delete it on hide (reuse it)
+		but wipe and rebuild
 
 don't rotate empty registers?
 
