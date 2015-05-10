@@ -27,14 +27,6 @@ function! s:num_compare (i1, i2)
 	return a:i1 - a:i2
 endfunction
 
-function! s:move_registers()
-	let @f = @e
-	let @e = @d
-	let @d = @c
-	let @c = @b
-	let @b = @a
-endfunction
-
 function! s:create_mappings()
 	nnoremap <buffer> <silent> q :call CloseMacroWindow()<cr>
 endfunction
@@ -71,6 +63,22 @@ function! s:find_window_number()
 	return -1
 endfunction
 
+
+function! MoveRegisters()
+	let prev = ''
+
+	for i in sort (keys (g:mnemosyne_registers), 's:num_compare')
+		if (exists ('g:mnemosyne_registers[i].pinned'))
+			continue
+		endif
+
+		let current = g:mnemosyne_registers[i].macro
+		let g:mnemosyne_registers[i].macro = prev
+		let prev = current
+	endfor
+
+	call SetRegisters()
+endfunction
 
 function! SetRegisters()
 	let num = len (g:mnemosyne_registers)
@@ -225,12 +233,13 @@ endfunction
 
 call ReadMacrosFromFile()
 
+nnoremap <silent> <leader>mc :call CloseMacroWindow()<cr>
+nnoremap <silent> <leader>ml :call ShowAll()<cr>
+nnoremap <silent> <leader>mm :call MoveRegisters()<cr>
+nnoremap <silent> <leader>mo :call OpenMacroWindow()<cr>
 nnoremap <silent> <leader>mr :call ReadMacrosFromFile()<cr>
 nnoremap <silent> <leader>ms :call SaveMacrosToFile()<cr>
-nnoremap <silent> <leader>mc :call CloseMacroWindow()<cr>
-nnoremap <silent> <leader>mo :call OpenMacroWindow()<cr>
 nnoremap <silent> <leader>mt :call ToggleMacroWindow()<cr>
-nnoremap <silent> <leader>ml :call ShowAll()<cr>
 
 nnoremap <silent> <F12> :update<cr>:source plugin/mnemosyne.vim<cr>
 
