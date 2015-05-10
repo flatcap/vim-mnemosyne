@@ -36,7 +36,7 @@ function! s:move_registers()
 endfunction
 
 function! s:create_mappings()
-	nnoremap <buffer> <silent> q :call mnemosyne#CloseMacroWindow()<cr>
+	nnoremap <buffer> <silent> q :call CloseMacroWindow()<cr>
 endfunction
 
 function! s:populate_macro_window()
@@ -92,7 +92,7 @@ function! SetRegisters()
 
 endfunction
 
-function! mnemosyne#ReadMacrosFromFile (...)
+function! ReadMacrosFromFile (...)
 	let file = (a:0 > 0) ? a:1 : g:mnemosyne_macro_file
 	let file = expand (file)
 	let list = readfile (file)
@@ -106,7 +106,7 @@ function! mnemosyne#ReadMacrosFromFile (...)
 	call SetRegisters()
 endfunction
 
-function! mnemosyne#SaveMacrosToFile (...)
+function! SaveMacrosToFile (...)
 	let file = (a:0 > 0) ? a:1 : g:mnemosyne_macro_file
 	let list = []
 
@@ -119,7 +119,7 @@ function! mnemosyne#SaveMacrosToFile (...)
 endfunction
 
 
-function! mnemosyne#OpenMacroWindow (...)
+function! OpenMacroWindow (...)
 	let winnum = s:find_window_number()
 	if (winnum >= 0)
 		execute winnum . 'wincmd w'
@@ -144,14 +144,23 @@ function! mnemosyne#OpenMacroWindow (...)
 	call s:create_mappings()
 endfunction
 
-function! mnemosyne#CloseMacroWindow()
+function! CloseMacroWindow()
 	let bufnum = bufnr (s:window_name)
 	if (bufnum >= 0)
 		execute 'silent bwipeout ' . bufnum
 	endif
 endfunction
 
-function! mnemosyne#ShowRegisters()
+function ToggleMacroWindow()
+	let win_num = s:find_window_number()
+	if (win_num < 0)
+		call OpenMacroWindow()
+	else
+		call CloseMacroWindow()
+	endif
+endfunction
+
+function! ShowRegisters()
 	echo 'Mnemosyne registers (' . len(g:mnemosyne_registers) . ' entries):'
 
 	" XXX sync registers to variable
@@ -165,7 +174,7 @@ function! mnemosyne#ShowRegisters()
 	endfor
 endfunction
 
-function! mnemosyne#ShowAll()
+function! ShowAll()
 	echo 'Mnemosyne registers (' . len(g:mnemosyne_registers) . ' entries):'
 
 	" XXX sync registers to variable
@@ -179,7 +188,7 @@ function! mnemosyne#ShowAll()
 	endfor
 endfunction
 
-function! mnemosyne#PinMacro (name, pin)
+function! PinMacro (name, pin)
 endfunction
 
 
@@ -191,12 +200,12 @@ function! ClearRegisters()
 endfunction
 
 
-call mnemosyne#ReadMacrosFromFile()
+call ReadMacrosFromFile()
 
-map <F7>  :call mnemosyne#ReadMacrosFromFile()<cr>
-map <F8>  :call mnemosyne#SaveMacrosToFile()<cr>
-map <F9>  :call SetRegisters()<cr>
-map <F10> :call mnemosyne#CloseMacroWindow()<cr>
-map <F11> :call mnemosyne#OpenMacroWindow (1)<cr>
-map <F12> :call mnemosyne#ShowAll()<cr>
+map <leader>mr :call ReadMacrosFromFile()<cr>
+map <leader>ms :call SaveMacrosToFile()<cr>
+map <leader>mc :call CloseMacroWindow()<cr>
+map <leader>mo :call OpenMacroWindow(1)<cr>
+map <leader>mt :call ToggleMacroWindow()<cr>
+map <leader>ml :call ShowAll()<cr>
 

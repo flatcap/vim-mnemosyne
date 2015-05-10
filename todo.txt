@@ -99,3 +99,5 @@ need to map
 	qa startmacro() rotate first
 	qA startmacro() no rotate
 
+ToggleMacroWindow()
+
