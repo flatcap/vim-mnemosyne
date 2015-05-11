@@ -73,15 +73,7 @@ Syntax for macro window
 	match regex to register config
 
 Clear other mappings?
-	mapclear  <buffer>
-	cmapclear <buffer>
-	imapclear <buffer>
-	lmapclear <buffer>
-	nmapclear <buffer>
-	omapclear <buffer>
-	smapclear <buffer>
-	vmapclear <buffer>
-	xmapclear <buffer>
+	mapclear <buffer>
 
 Option: move pinned macros to end of list
 
@@ -92,12 +84,6 @@ no, need to trap it so I know when a recording finishes
 need to map
 	qa startmacro() rotate first
 	qA startmacro() no rotate
-
-make the macro window modal
-	on open - replace current buffer
-	on close - restore buffer
-	don't delete it on hide (reuse it)
-		but wipe and rebuild
 
 don't rotate empty registers?
 

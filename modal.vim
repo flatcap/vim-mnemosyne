@@ -62,23 +62,27 @@ function! g:OpenModal() abort
 endfunction
 
 function! g:CloseModal()
-	let this_win = winnr()
-
 	let winnum = s:find_window_number()
 	if (winnum < 0)
 		return
 	endif
 
+	let this_win = winnr()
 	if (winnum != this_win)
 		execute winnum . 'wincmd w'
 	endif
 
 	if (exists ('w:return_buffer'))
-		execute 'silent ' . w:return_buffer . 'buffer'
+		" execute 'silent ' . w:return_buffer . 'buffer'
+		execute w:return_buffer . 'buffer'
 	endif
 
 	if (exists ('w:return_cursor'))
 		call setpos ('.', w:return_cursor)
+	endif
+
+	if (this_win != winnr())
+		execute this_win . 'wincmd w'
 	endif
 endfunction
 
@@ -92,5 +96,6 @@ function! g:ToggleModal()
 endfunction
 
 
-map <silent> <F12> :<c-u>update<bar>source modal.vim<bar>call ToggleModal()<cr>
+map <silent> <F11> :<c-u>update<bar>source modal.vim<cr>
+map <silent> <F12> :<c-u>call ToggleModal()<cr>
 

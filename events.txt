@@ -1,0 +1,45 @@
+Close THIS modal window
+	BufLeave
+	BufWinLeave
+	BufHidden
+
+Close OTHER modal window
+	WinEnter
+	BufEnter
+	BufLeave
+	BufWinLeave
+	BufHidden
+
+Switch buffers on THIS modal window (:b1)
+	BufLeave
+	BufWinLeave
+	BufHidden
+
+Quit THIS modal window (:q)
+	BufLeave
+	WinLeave
+	BufWinLeave
+	BufHidden
+
+Delete THIS modal window (:bd)
+	BufLeave
+	WinLeave
+	BufWinLeave
+	BufHidden
+
+Only on OTHER modal window (:only)
+	BufWinLeave
+
+Tab out of modal window
+	BufLeave
+	WinLeave
+
+Tab into modal window
+	WinEnter
+	BufEnter
+
+Create new tab
+	WinLeave
+	WinEnter
+	BufLeave
+
