@@ -12,7 +12,17 @@ function! s:find_window_number()
 	return -1
 endfunction
 
-function! OpenModal() abort
+function! s:populate_window()
+	for i in range(1, 20)
+		let char = nr2char (char2nr('a')+i-1)
+		let msg = char . ' This is entry ' . i
+		call setline (i, msg)
+	endfor
+	execute '%!shuf'
+endfunction
+
+
+function! g:OpenModal() abort
 	let winnum = s:find_window_number()
 	if (winnum >= 0)
 		execute winnum . 'wincmd w'
@@ -22,30 +32,34 @@ function! OpenModal() abort
 	let bufnum = bufnr ('%')
 	let cursor = getpos ('.')
 
-	execute 'silent enew'
-	execute 'silent file ' . s:window_name
+	let mod_buf = bufnr (s:window_name)
+	if (mod_buf < 0)
+		execute 'silent enew'
+		execute 'silent file ' . s:window_name
+	else
+		execute 'silent ' . mod_buf . 'buffer'
+	endif
 
 	let w:return_buffer = bufnum
 	let w:return_cursor = cursor
 
-	for i in range(1, 20)
-		let char = nr2char (char2nr('a')+i-1)
-		let msg = char . ' This is line ' . i
-		call setline (i, msg)
-	endfor
+	setlocal modifiable
 
-	mapclear <buffer>
-
-	map <silent> <buffer> q :<c-u>quit<cr>
+	call s:populate_window()
 
 	setlocal buftype=nofile
-	setlocal bufhidden=wipe
+	setlocal bufhidden=hide
+	setlocal nobuflisted
 	setlocal noswapfile
 	setlocal nomodifiable
 	setlocal cursorline
+
+	mapclear <buffer>
+
+	map <silent> <buffer> q :<c-u>call CloseModal()<cr>
 endfunction
 
-function! CloseModal()
+function! g:CloseModal()
 	let this_win = winnr()
 
 	let winnum = s:find_window_number()
@@ -53,7 +67,9 @@ function! CloseModal()
 		return
 	endif
 
-	execute winnum . 'wincmd w'
+	if (winnum != this_win)
+		execute winnum . 'wincmd w'
+	endif
 
 	if (exists ('w:return_buffer'))
 		execute 'silent ' . w:return_buffer . 'buffer'
@@ -64,7 +80,7 @@ function! CloseModal()
 	endif
 endfunction
 
-function! ToggleModal()
+function! g:ToggleModal()
 	let winnum = s:find_window_number()
 	if (winnum >= 0)
 		call CloseModal()
