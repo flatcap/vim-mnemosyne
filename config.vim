@@ -1,16 +1,27 @@
 " Mnemosyne - https://github.com/flatcap/vim-mnemosyne
-a	macro text o
-b	macro text n
-c	macro text m
-d	macro text l
-e*	macro text k
-f	macro text j
-g	macro text i
-h*	macro text h
-i	macro text g
-j	macro text f
--	macro text e
--	macro text d
--	macro text c
--	macro text b
--	macro text a
+-	apple
+-	banana
+-	cherry
+-	damson
+-	elderberry
+-	fig
+-	guava
+-	hawthorn
+-	ilama
+-	jackfruit
+-	kumquat
+-	lemon
+-	mango
+-	nectarine
+-	olive
+-	papaya
+-	quince
+-	raspberry
+-	strawberry
+-	tangerine
+-	ugli
+-	vanilla
+-	wolfberry
+-	xigua
+-	yew
+-	ziziphus

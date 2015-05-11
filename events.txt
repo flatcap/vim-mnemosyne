@@ -21,6 +21,9 @@ Quit THIS modal window (:q)
 	BufWinLeave
 	BufHidden
 
+Quit vim (:qa!)
+	BufWinLeave
+
 Delete THIS modal window (:bd)
 	BufLeave
 	WinLeave

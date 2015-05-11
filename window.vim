@@ -3,7 +3,7 @@
 "	q - quit
 "	...
 " -------------------------------------
-"Reg	Macro
+" Named macros
 a	macro text o
 b	macro text n
 c	macro text m
@@ -15,17 +15,17 @@ h*	macro text h
 i	macro text g
 j	macro text f
 
-" Unnamed (saved) macros
+" Unnamed macros (saved)
 -	macro text e
 -	macro text d
 -	macro text c
 -	macro text b
 -	macro text a
 
-" Deleted macros
+" Deleted macros? -- how do I keep track of them?
 "!	deleted macro
 
-" Overflow
+" Overflow - these only exist in THIS window
 "!	lost macro too many
 "!	lost macro too many
 "!	lost macro too many
