@@ -17,7 +17,10 @@ function! s:populate_window()
 	call setline (1, '" Modal Window')
 	for i in range(1, 20)
 		let char = nr2char (char2nr('a')+i-1)
-		let msg = char . ' This is entry ' . i
+		if (i < 4)
+			let char .= '*'
+		endif
+		let msg = char . "\tThis is entry " . i
 		execute 'normal! o' . msg
 	endfor
 	execute '2,$!shuf'

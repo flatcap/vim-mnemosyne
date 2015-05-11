@@ -41,6 +41,7 @@ endfunction
 function! s:populate_macro_window()
 	let old_paste = &paste
 	setlocal paste
+	execute '%d'
 
 	call setline (1, '" Mnemosyne.vim - Mistress of Macros')
 
@@ -71,7 +72,7 @@ function! s:find_window_number()
 endfunction
 
 
-function! SyncRegistersToVar()
+function! g:SyncRegistersToVar()
 	let num = len (g:mnemosyne_registers)
 
 	let key_list = sort (keys (g:mnemosyne_registers), "s:num_compare")
@@ -88,7 +89,7 @@ function! SyncRegistersToVar()
 	endfor
 endfunction
 
-function! MoveRegisters()
+function! g:MoveRegisters()
 	let prev = ''
 
 	call SyncRegistersToVar()
@@ -106,7 +107,7 @@ function! MoveRegisters()
 	call SetRegisters()
 endfunction
 
-function! SetRegisters()
+function! g:SetRegisters()
 	let num = len (g:mnemosyne_registers)
 
 	let key_list = sort (keys (g:mnemosyne_registers), "s:num_compare")
@@ -127,7 +128,7 @@ function! SetRegisters()
 	endfor
 endfunction
 
-function! ReadMacrosFromFile (...)
+function! g:ReadMacrosFromFile (...)
 	let file = (a:0 > 0) ? a:1 : g:mnemosyne_macro_file
 	let file = expand (file)
 	let list = readfile (file)
@@ -156,7 +157,7 @@ function! ReadMacrosFromFile (...)
 	call SetRegisters()
 endfunction
 
-function! SaveMacrosToFile (...)
+function! g:SaveMacrosToFile (...)
 	let file = (a:0 > 0) ? a:1 : g:mnemosyne_macro_file
 
 	let list = [
@@ -173,50 +174,79 @@ function! SaveMacrosToFile (...)
 endfunction
 
 
-function! OpenMacroWindow (...)
+function! g:OpenMacroWindow (...)
 	let winnum = s:find_window_number()
 	if (winnum >= 0)
 		execute winnum . 'wincmd w'
 		return
 	endif
 
-	let vert = (a:0 > 0) ? a:1 : g:mnemosyne_split_vertical
+	let bufnum = bufnr ('%')
+	let cursor = getpos ('.')
 
-	let cmd = 'silent new ' . s:window_name
-	if (vert == 1)
-		let cmd = 'vertical ' . cmd
+	let mod_buf = bufnr (s:window_name)
+	if (mod_buf < 0)
+		execute 'silent enew'
+		execute 'silent file ' . s:window_name
+	else
+		execute 'silent ' . mod_buf . 'buffer'
 	endif
-	execute cmd
+
+	let w:return_buffer = bufnum
+	let w:return_cursor = cursor
 
 	setlocal buftype=nofile
-	setlocal bufhidden=wipe
+	setlocal bufhidden=hide
+	setlocal nobuflisted
 	setlocal noswapfile
+	setlocal cursorline
 	setlocal filetype=vim
 	" setlocal list
 
+	setlocal modifiable
 	call s:populate_macro_window()
+	setlocal nomodifiable
+
 	call s:create_mappings()
 
 	normal 2G
 endfunction
 
-function! CloseMacroWindow()
-	let bufnum = bufnr (s:window_name)
-	if (bufnum >= 0)
-		execute 'silent bwipeout ' . bufnum
+function! g:CloseMacroWindow()
+	let winnum = s:find_window_number()
+	if (winnum < 0)
+		return
+	endif
+
+	let this_win = winnr()
+	if (winnum != this_win)
+		execute winnum . 'wincmd w'
+	endif
+
+	if (exists ('w:return_buffer'))
+		" execute 'silent ' . w:return_buffer . 'buffer'
+		execute w:return_buffer . 'buffer'
+	endif
+
+	if (exists ('w:return_cursor'))
+		call setpos ('.', w:return_cursor)
+	endif
+
+	if (this_win != winnr())
+		execute this_win . 'wincmd w'
 	endif
 endfunction
 
-function! ToggleMacroWindow()
+function! g:ToggleMacroWindow()
 	let win_num = s:find_window_number()
-	if (win_num < 0)
-		call OpenMacroWindow()
-	else
+	if (win_num >= 0)
 		call CloseMacroWindow()
+	else
+		call OpenMacroWindow()
 	endif
 endfunction
 
-function! ShowRegisters()
+function! g:ShowRegisters()
 	call SyncRegistersToVar()
 
 	let num = len(g:mnemosyne_register_list)
@@ -236,7 +266,7 @@ function! ShowRegisters()
 	endfor
 endfunction
 
-function! ShowAll()
+function! g:ShowAll()
 	call SyncRegistersToVar()
 
 	echo 'Mnemosyne registers (' . len(g:mnemosyne_registers) . ' entries):'
@@ -252,7 +282,7 @@ function! ShowAll()
 	endfor
 endfunction
 
-function! PinMacro (name, pin)
+function! g:PinMacro (name, pin)
 	let i = stridx (g:mnemosyne_register_list, a:name)
 	if (i < 0)
 		let i = a:name
@@ -275,7 +305,7 @@ function! PinMacro (name, pin)
 endfunction
 
 
-function! ClearRegisters()
+function! g:ClearRegisters()
 	for i in range (26)
 		let reg = nr2char (char2nr ('a')+i)
 		call setreg (reg, '')
@@ -297,5 +327,5 @@ nnoremap <silent> <leader>mv :call SyncRegistersToVar()<cr>
 
 nnoremap <silent> <F12> :update<cr>:source plugin/mnemosyne.vim<cr>
 
-nnoremap <silent> qa :call MoveRegisters()<cr>qa
-nnoremap <silent> q  q:call SyncRegistersToVar()<cr>
+" nnoremap <silent> qa :call MoveRegisters()<cr>qa
+" nnoremap <silent> q  q:call SyncRegistersToVar()<cr>
