@@ -101,3 +101,13 @@ make the macro window modal
 
 don't rotate empty registers?
 
+on WinLeave, save the cursor position in a window-local variable
+
+refresh to update indices
+
+if a macro is locked, ignore changes in the register
+	'K' is locked
+	@k has changed
+	on 'Sync', read registers into variable (skipping locked)
+	push variable back into registers
+
