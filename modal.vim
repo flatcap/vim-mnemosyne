@@ -13,12 +13,14 @@ function! s:find_window_number()
 endfunction
 
 function! s:populate_window()
+	execute '%d'
+	call setline (1, '" Modal Window')
 	for i in range(1, 20)
 		let char = nr2char (char2nr('a')+i-1)
 		let msg = char . ' This is entry ' . i
-		call setline (i, msg)
+		execute 'normal! o' . msg
 	endfor
-	execute '%!shuf'
+	execute '2,$!shuf'
 endfunction
 
 
