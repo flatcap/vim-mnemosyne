@@ -30,7 +30,7 @@ function! s:dump_registers()
 			else
 				echohl red
 			endif
-			echom printf ("%s ", data)
+			echo printf ("%s ", data)
 		else
 			if (letter =~? '[a-z]')
 				echohl yellow
@@ -144,6 +144,27 @@ function! s:insert_system_comments()
 
 endfunction
 
+function! s:populate_window()
+	execute '%d'
+
+	for i in s:registers
+		let locked = (exists ('i.locked')) ? '*' : ''
+		if (exists ('i.letter'))
+			let letter = i.letter
+		else
+			let letter = '-'
+		endif
+		let line = line('$') - 1
+		if (exists ('i.comment'))
+			call append (line, i.data)
+		else
+			let text = printf ("%s%s\t%s", letter, locked, i.data)
+			call append (line, text)
+		endif
+	endfor
+	normal 1G
+endfunction
+
 
 function! g:LastEdit()
 	let undo = undotree()
@@ -241,7 +262,8 @@ endfunction
 call s:create_window_read_config()
 call s:strip_out_system_comments()
 call s:insert_system_comments()
-call s:dump_registers()
+call s:populate_window()
+" call s:dump_registers()
 
 map <F12> :wincmd t<bar>only<bar>update<bar>source %<cr>
 
