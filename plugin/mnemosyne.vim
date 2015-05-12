@@ -53,7 +53,7 @@ function! s:populate_macro_window()
 			let name .= '*'
 		endif
 		execute 'normal! o' . name . "\t"
-		let @" = g:mnemosyne_registers[i].macro
+		let @" = g:mnemosyne_registers[i].data
 		if (len (@") > 0)
 			execute 'normal! ""p'
 		endif
@@ -79,15 +79,15 @@ function! g:SyncRegistersToVar()
 
 	for i in range (reg_count)
 		let reg = nr2char (char2nr('a')+i)
-		let macro = getreg (reg)
-		let g:mnemosyne_registers[i].macro = macro
+		let data = getreg (reg)
+		let g:mnemosyne_registers[i].data = data
 	endfor
 endfunction
 
 function! g:MoveRegisters()
 	call SyncRegistersToVar()
 
-	call insert (g:mnemosyne_registers, { 'macro': '' }, 0)
+	call insert (g:mnemosyne_registers, { 'data': '' }, 0)
 
 	call SetRegisters()
 endfunction
@@ -96,8 +96,8 @@ function! g:SetRegisters()
 	let reg_count = len (g:mnemosyne_register_list)
 	for i in range (reg_count)
 		let reg = nr2char (char2nr('a')+i)
-		let macro = g:mnemosyne_registers[i].macro
-		call setreg (reg, macro)
+		let data = g:mnemosyne_registers[i].data
+		call setreg (reg, data)
 	endfor
 endfunction
 
@@ -114,9 +114,9 @@ function! g:ReadMacrosFromFile (...)
 		endif
 
 		let flags = substitute (line, '\t.*', '', '')
-		let macro = substitute (line, '^.\{-\}\t', '', '')
+		let data = substitute (line, '^.\{-\}\t', '', '')
 
-		let entry = { 'macro' : macro }
+		let entry = { 'data' : data }
 
 		if (flags =~? 'p')
 			let entry.pinned = 1
@@ -133,7 +133,7 @@ function! g:SaveMacrosToFile (...)
 	let list = copy (s:file_header)
 
 	for i in g:mnemosyne_registers
-		let list += [ "\t" . i.macro ]
+		let list += [ "\t" . i.data ]
 	endfor
 
 	let file = expand (file)
@@ -227,7 +227,7 @@ function! g:ShowRegisters(...)
 			break
 		endif
 		let name = (i < num) ? g:mnemosyne_register_list[i] : '-'
-		let contents = g:mnemosyne_registers[i].macro
+		let contents = g:mnemosyne_registers[i].data
 		let contents = substitute (contents, nr2char(10), '^J', 'g')
 		let contents = substitute (contents, nr2char(13), '^M', 'g')
 		let contents = substitute (contents, ' ', '␣', 'g')
