@@ -1,27 +1,32 @@
 " Mnemosyne - https://github.com/flatcap/vim-mnemosyne
--	apple
--	banana
--	cherry
--	damson
--	elderberry
--	fig
--	guava
--	hawthorn
--	ilama
--	jackfruit
+" Named registers
+a	apple
+b	banana
+c	cherry
+d	damson
+e	elderberry
+f	fig
+g	guava
+h	hawthorn
+i	ilama
+j	jackfruit
+
+" Unnamed registers
 -	kumquat
 -	lemon
 -	mango
 -	nectarine
 -	olive
--	papaya
--	quince
--	raspberry
--	strawberry
--	tangerine
--	ugli
--	vanilla
--	wolfberry
--	xigua
--	yew
--	ziziphus
+
+" Will be lost when vim is closed
+"	papaya
+"	quince
+"	raspberry
+"	strawberry
+"	tangerine
+"	ugli
+"	vanilla
+"	wolfberry
+"	xigua
+"	yew
+"	ziziphus

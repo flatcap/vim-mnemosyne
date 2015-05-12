@@ -1,7 +1,41 @@
 let s:reg_list = 'abcdefghij'
 let s:max_reg  = 15
+let s:sequence = 0
+
+let s:messages = [
+	\ '" Mnemosyne - https://github.com/flatcap/vim-mnemosyne',
+	\ '" Named registers',
+	\ '" Unnamed registers',
+	\ '" Will be lost when vim is closed',
+\ ]
+
+function! g:LastEdit()
+	let undo = undotree()
+	return undo.time_cur
+endfunction
+
+function! g:StatusLine()
+	return strftime('%c',LastEdit()) . ' ' . s:sequence
+endfunction
 
 function! g:MaintainList()
+	" set title titlestring=%{strftime('%c',LastEdit())}
+	" set statusline=%<%f\ %h%m%r\ %y%=%{v:register}\ %-14.(%l,%c%V%)\ %P
+
+	let s:sequence += 1
+	set statusline=%{StatusLine()}
+
+	if (!exists ('w:last_update'))
+		let w:last_update = 0
+	endif
+
+	let edit = LastEdit()
+	if (edit == w:last_update)
+		return
+	endif
+
+	let w:last_update = edit
+	return
 	let reg_max = len (s:reg_list) - 1
 	let reg_idx = 0
 
@@ -39,11 +73,29 @@ function! g:MaintainList()
 endfunction
 
 
-vsplit config.vim
+" vsplit config.vim
 
 augroup MaintainList
 	autocmd!
 	autocmd CursorMoved <buffer=2> call MaintainList()
 augroup END
 
+let f = readfile ('config.vim')
+
+let num = len(f) - 1
+for i in range(num, 0, -1)
+	if (f[i] =~ '^\s*$')
+		unlet f[i]
+		continue
+	endif
+	for m in s:messages
+		if (f[i] == m)
+			unlet f[i]
+		endif
+	endfor
+endfor
+
+for i in f
+	echo i
+endfor
 
