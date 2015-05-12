@@ -12,6 +12,11 @@
 
 let s:window_name = '__mnemosyne__'
 
+let s:file_header = [
+	\ '" Mnemosyne.vim - Mistress of Macros',
+	\ '" https://github.com/flatcap/vim-mnemosyne'
+\ ]
+
 " Set some default values
 if (!exists ('g:mnemosyne_macro_file'))     | let g:mnemosyne_macro_file     = '~/.vim/macros.vim' | endif
 if (!exists ('g:mnemosyne_magic_map_char')) | let g:mnemosyne_magic_map_char = 'a'                 | endif
@@ -21,11 +26,7 @@ if (!exists ('g:mnemosyne_show_help'))      | let g:mnemosyne_show_help      = 1
 if (!exists ('g:mnemosyne_show_labels'))    | let g:mnemosyne_show_labels    = 1                   | endif
 if (!exists ('g:mnemosyne_split_vertical')) | let g:mnemosyne_split_vertical = 1                   | endif
 
-let g:mnemosyne_registers = {}
-
-function! s:num_compare (i1, i2)
-	return a:i1 - a:i2
-endfunction
+let g:mnemosyne_registers = []
 
 function! WindowTogglePinned()
 	let line = getline('.')
@@ -45,7 +46,8 @@ function! s:populate_macro_window()
 
 	call setline (1, '" Mnemosyne.vim - Mistress of Macros')
 
-	for i in sort (keys (g:mnemosyne_registers), 's:num_compare')
+	let reg_count = len(g:mnemosyne_registers)
+	for i in range(reg_count)
 		let name = (i < len(g:mnemosyne_register_list)) ? g:mnemosyne_register_list[i] : '-'
 		if (exists ('g:mnemosyne_registers[i].pinned'))
 			let name .= '*'
@@ -73,58 +75,29 @@ endfunction
 
 
 function! g:SyncRegistersToVar()
-	let num = len (g:mnemosyne_registers)
+	let reg_count = len (g:mnemosyne_register_list)
 
-	let key_list = sort (keys (g:mnemosyne_registers), "s:num_compare")
-
-	for i in range (1, num)
-		if (i > len (g:mnemosyne_register_list))
-			break
-		endif
-
-		let reg = g:mnemosyne_register_list[i-1]
-		let reg_idx = key_list[i-1]
+	for i in range (reg_count)
+		let reg = nr2char (char2nr('a')+i)
 		let macro = getreg (reg)
-		let g:mnemosyne_registers[reg_idx].macro = macro
+		let g:mnemosyne_registers[i].macro = macro
 	endfor
 endfunction
 
 function! g:MoveRegisters()
-	let prev = ''
-
 	call SyncRegistersToVar()
 
-	for i in sort (keys (g:mnemosyne_registers), 's:num_compare')
-		if (exists ('g:mnemosyne_registers[i].pinned'))
-			continue
-		endif
-
-		let current = g:mnemosyne_registers[i].macro
-		let g:mnemosyne_registers[i].macro = prev
-		let prev = current
-	endfor
+	call insert (g:mnemosyne_registers, { 'macro': '' }, 0)
 
 	call SetRegisters()
 endfunction
 
 function! g:SetRegisters()
-	let num = len (g:mnemosyne_registers)
-
-	let key_list = sort (keys (g:mnemosyne_registers), "s:num_compare")
-
-	for i in range (1, num)
-		if (i <= len (g:mnemosyne_register_list))
-			let reg = g:mnemosyne_register_list[i-1]
-		elseif (i <= g:mnemosyne_max_macros)
-			let reg = 'unnamed'
-		else
-			let reg = 'lost'
-		endif
-		let reg_idx = key_list[i-1]
-		let macro = g:mnemosyne_registers[reg_idx].macro
-		if (len (reg) == 1)
-			call setreg (reg, macro)
-		endif
+	let reg_count = len (g:mnemosyne_register_list)
+	for i in range (reg_count)
+		let reg = nr2char (char2nr('a')+i)
+		let macro = g:mnemosyne_registers[i].macro
+		call setreg (reg, macro)
 	endfor
 endfunction
 
@@ -134,7 +107,6 @@ function! g:ReadMacrosFromFile (...)
 	let list = readfile (file)
 
 	let num = len (list)
-	let index = 0
 	for i in range (num)
 		let line = list[i]
 		if (line =~ '^\s*"')
@@ -148,11 +120,9 @@ function! g:ReadMacrosFromFile (...)
 
 		if (flags =~? 'p')
 			let entry.pinned = 1
-			" echo entry
 		endif
 
-		let g:mnemosyne_registers[index] = entry
-		let index += 1
+		call add (g:mnemosyne_registers, entry)
 	endfor
 	call SetRegisters()
 endfunction
@@ -160,13 +130,10 @@ endfunction
 function! g:SaveMacrosToFile (...)
 	let file = (a:0 > 0) ? a:1 : g:mnemosyne_macro_file
 
-	let list = [
-		\ '" Mnemosyne.vim - Mistress of Macros',
-		\ '" https://github.com/flatcap/vim-mnemosyne'
-	\ ]
+	let list = copy (s:file_header)
 
-	for i in sort (keys (g:mnemosyne_registers), 's:num_compare')
-		let list += [ "\t" . g:mnemosyne_registers[i] ]
+	for i in g:mnemosyne_registers
+		let list += [ "\t" . i.macro ]
 	endfor
 
 	let file = expand (file)
@@ -246,38 +213,26 @@ function! g:ToggleMacroWindow()
 	endif
 endfunction
 
-function! g:ShowRegisters()
+function! g:ShowRegisters(...)
+	let show_all = (a:0 > 0) ? a:1 : 0
+
 	call SyncRegistersToVar()
+
+	let reg_count = len(g:mnemosyne_registers)
+	echo 'Mnemosyne registers (' . reg_count . ' entries):'
 
 	let num = len(g:mnemosyne_register_list)
-	echo 'Mnemosyne registers (' . num . ' entries):'
-	for i in sort (keys (g:mnemosyne_registers), 's:num_compare')
-		if (i >= num)
+	for i in range(reg_count)
+		if ((i >= num) && !show_all)
 			break
 		endif
-		let name = g:mnemosyne_register_list[i]
+		let name = (i < num) ? g:mnemosyne_register_list[i] : '-'
 		let contents = g:mnemosyne_registers[i].macro
 		let contents = substitute (contents, nr2char(10), '^J', 'g')
 		let contents = substitute (contents, nr2char(13), '^M', 'g')
 		let contents = substitute (contents, ' ', '␣', 'g')
 		let contents = substitute (contents, '\%' . (&columns - 20) . 'v.*', ' ⋯', '')
-		let flags = (exists ('g:mnemosyne_registers[i].pinned')) ? '*' : ' '
-		echo printf ('  %s%s : %s', name, flags, contents)
-	endfor
-endfunction
-
-function! g:ShowAll()
-	call SyncRegistersToVar()
-
-	echo 'Mnemosyne registers (' . len(g:mnemosyne_registers) . ' entries):'
-	for i in sort (keys (g:mnemosyne_registers), 's:num_compare')
-		let name = (i < len(g:mnemosyne_register_list)) ? g:mnemosyne_register_list[i] : '-'
-		let contents = g:mnemosyne_registers[i].macro
-		let contents = substitute (contents, nr2char(10), '^J', 'g')
-		let contents = substitute (contents, nr2char(13), '^M', 'g')
-		let contents = substitute (contents, ' ', '␣', 'g')
-		let contents = substitute (contents, '\%' . (&columns - 20) . 'v.*', ' ⋯', '')
-		let flags = (exists ('g:mnemosyne_registers[i].pinned')) ? '*' : ' '
+		let flags = (exists ('i.pinned')) ? '*' : ' '
 		echo printf ('  %s%s : %s', name, flags, contents)
 	endfor
 endfunction
@@ -306,6 +261,9 @@ endfunction
 
 
 function! g:ClearRegisters()
+	for i in range (10)
+		call setreg (i, '')
+	endfor
 	for i in range (26)
 		let reg = nr2char (char2nr ('a')+i)
 		call setreg (reg, '')
@@ -316,14 +274,15 @@ endfunction
 call ReadMacrosFromFile()
 
 nnoremap <silent> <leader>mc :call CloseMacroWindow()<cr>
-nnoremap <silent> <leader>ml :call ShowRegisters()<cr>
-nnoremap <silent> <leader>mL :call ShowAll()<cr>
+nnoremap <silent> <leader>ml :call ShowRegisters(0)<cr>
+nnoremap <silent> <leader>mL :call ShowRegisters(1)<cr>
 nnoremap <silent> <leader>mm :call MoveRegisters()<cr>
 nnoremap <silent> <leader>mo :call OpenMacroWindow()<cr>
 nnoremap <silent> <leader>mr :call ReadMacrosFromFile()<cr>
 nnoremap <silent> <leader>ms :call SaveMacrosToFile()<cr>
 nnoremap <silent> <leader>mt :call ToggleMacroWindow()<cr>
 nnoremap <silent> <leader>mv :call SyncRegistersToVar()<cr>
+nnoremap <silent> <leader>mx :call ClearRegisters()<cr>
 
 nnoremap <silent> <F12> :update<cr>:source plugin/mnemosyne.vim<cr>
 

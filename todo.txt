@@ -32,8 +32,10 @@ Macro window mappings
 	r     read macros from file
 	r     refresh?
 	p     pin macro to register (move skips this reg)
+	l     lock == pin
 	x     execute macro on alternate buffer
 	<cr>  execute
+	d     disable (toggle) => comment it out
 
 Let the user 'source' the macro files?
 	autocmd SourcePre	before sourcing a Vim script
