@@ -33,6 +33,7 @@ if (!exists ('g:mnemosyne_show_help'))      | let g:mnemosyne_show_help      = 1
 if (!exists ('g:mnemosyne_show_labels'))    | let g:mnemosyne_show_labels    = 1                   | endif
 if (!exists ('g:mnemosyne_split_vertical')) | let g:mnemosyne_split_vertical = 1                   | endif
 
+let g:mnemosyne_recording = ''
 let g:mnemosyne_registers = []
 
 function! s:place_sign(buffer, line, char, locked)
@@ -446,18 +447,45 @@ endfunction
 " <esc>, <space>, <enter> cancels
 
 function! g:InterceptQ()
-	let c = getchar()
-	if ((c >= 128) || (type(c) == type('')))
+	if (g:mnemosyne_recording != '')
+		let reg = tolower (g:mnemosyne_recording)
+		let g:mnemosyne_recording = ''
+
+		normal! q
+		let val = substitute (getreg(reg), 'q$', '', '')
+		call setreg (reg, val)
 		return
 	endif
 
-	echohl error
-	echom 'Intercept: q' . nr2char(c)
-	echohl none
+	let c = getchar()
+	if ((type(c) == type('')) || (c >= 128))
+		return
+	endif
+
+	let c = nr2char(c)
+	if (c =~ '^[:/?]$')
+		" Delegate without tracking
+		call feedkeys ('q' . c, 'n')
+		return
+	endif
+
+	if (stridx (g:mnemosyne_register_list, c) < 0)
+		if (c =~ '[0-9a-zA-Z"]')
+			" Delegate and track
+			let g:mnemosyne_recording = c
+			execute 'normal! q' . c
+		endif
+		return
+	endif
+
+	" Intercept and track
+	call MoveRegisters()
+	let g:mnemosyne_recording = c
+	execute 'normal! q' . c
 endfunction
 
 
-" nnoremap <silent> <buffer> q :<c-u>call InterceptQ()<cr>
+nnoremap <silent> q :<c-u>call InterceptQ()<cr>
 
 call ReadMacrosFromFile()
 
