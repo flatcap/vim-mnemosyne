@@ -111,3 +111,13 @@ use comments for naming macros
 
 de-dupe macros (make it easier to manage)
 
+on 'start recording' update macro window to [RECORDING]
+	change sign too?
+
+have non-modal open_window command
+	open_win (width, vertical)
+	default to 'default width', mnem vert config
+
+have a q-<esc> mapping to abort a recording?
+	would interfere with q-getchar()
+

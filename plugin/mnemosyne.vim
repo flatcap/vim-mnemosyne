@@ -25,7 +25,7 @@ let s:window_comments = [
 \ ]
 
 " Set some default values
-if (!exists ('g:mnemosyne_macro_file'))     | let g:mnemosyne_macro_file     = 'macros.vim' | endif
+if (!exists ('g:mnemosyne_macro_file'))     | let g:mnemosyne_macro_file     = '~/.vim/macros.vim' | endif
 if (!exists ('g:mnemosyne_magic_map_char')) | let g:mnemosyne_magic_map_char = 'a'                 | endif
 if (!exists ('g:mnemosyne_max_macros'))     | let g:mnemosyne_max_macros     = 15                  | endif
 if (!exists ('g:mnemosyne_register_list'))  | let g:mnemosyne_register_list  = 'abcdefghij'        | endif
@@ -33,8 +33,8 @@ if (!exists ('g:mnemosyne_show_help'))      | let g:mnemosyne_show_help      = 1
 if (!exists ('g:mnemosyne_show_labels'))    | let g:mnemosyne_show_labels    = 1                   | endif
 if (!exists ('g:mnemosyne_split_vertical')) | let g:mnemosyne_split_vertical = 1                   | endif
 
-let g:mnemosyne_recording = ''
-let g:mnemosyne_registers = []
+let s:mnemosyne_recording = ''
+let s:mnemosyne_registers = []
 
 function! s:place_sign(buffer, line, char, locked)
 	if (a:locked)
@@ -68,7 +68,7 @@ function! s:populate_macro_window()
 	let named   = len (g:mnemosyne_register_list)
 	let unnamed = g:mnemosyne_max_macros
 
-	let num = len (g:mnemosyne_registers)
+	let num = len (s:mnemosyne_registers)
 	let comment1 = -1
 	let comment2 = -1
 
@@ -94,9 +94,9 @@ function! s:populate_macro_window()
 		endif
 		let reg_count += 1
 
-		let locked = exists ('g:mnemosyne_registers[i].locked')
+		let locked = exists ('s:mnemosyne_registers[i].locked')
 		let line = line('$')
-		let text = g:mnemosyne_registers[i].data
+		let text = s:mnemosyne_registers[i].data
 		call append (line-1, text)
 
 		call s:place_sign (buf_num, line, letter, locked)
@@ -197,11 +197,11 @@ function! g:WindowToggleLocked()
 		return
 	endif
 
-	if (exists ('g:mnemosyne_registers[index].locked'))
-		unlet g:mnemosyne_registers[index].locked
+	if (exists ('s:mnemosyne_registers[index].locked'))
+		unlet s:mnemosyne_registers[index].locked
 		let locked = 0
 	else
-		let g:mnemosyne_registers[index].locked = 1
+		let s:mnemosyne_registers[index].locked = 1
 		let locked = 1
 	endif
 
@@ -218,7 +218,9 @@ function! g:WindowToggleLocked()
 		let letter = '!'
 	endif
 
-	call s:place_sign (buf_num, line_num, letter, locked)
+	if (letter != '!')
+		call s:place_sign (buf_num, line_num, letter, locked)
+	endif
 endfunction
 
 
@@ -228,14 +230,14 @@ function! g:SyncRegistersToVar()
 	for i in range (reg_count)
 		let reg = nr2char (char2nr('a')+i)
 		let data = getreg (reg)
-		let g:mnemosyne_registers[i].data = data
+		let s:mnemosyne_registers[i].data = data
 	endfor
 endfunction
 
 function! g:MoveRegisters()
 	call SyncRegistersToVar()
 
-	call insert (g:mnemosyne_registers, { 'data': '' }, 0)
+	call insert (s:mnemosyne_registers, { 'data': '' }, 0)
 
 	call SetRegisters()
 endfunction
@@ -244,7 +246,7 @@ function! g:SetRegisters()
 	let reg_count = len (g:mnemosyne_register_list)
 	for i in range (reg_count)
 		let reg = nr2char (char2nr('a')+i)
-		let data = g:mnemosyne_registers[i].data
+		let data = s:mnemosyne_registers[i].data
 		call setreg (reg, data)
 	endfor
 endfunction
@@ -254,7 +256,7 @@ function! g:ReadMacrosFromFile (...)
 	let file = expand (file)
 	let list = readfile (file)
 
-	let g:mnemosyne_registers = []
+	let s:mnemosyne_registers = []
 
 	let locked = s:parse_header (list)
 
@@ -271,7 +273,7 @@ function! g:ReadMacrosFromFile (...)
 			let entry.locked = 1
 		endif
 
-		call add (g:mnemosyne_registers, entry)
+		call add (s:mnemosyne_registers, entry)
 	endfor
 	call SetRegisters()
 endfunction
@@ -282,9 +284,9 @@ function! g:SaveMacrosToFile (...)
 	let list = copy (s:file_header)
 
 	let locked = []
-	let num = len(g:mnemosyne_registers)
+	let num = len(s:mnemosyne_registers)
 	for i in range(num)
-		let reg = g:mnemosyne_registers[i]
+		let reg = s:mnemosyne_registers[i]
 		let list += [ reg.data ]
 		if (exists ('reg.locked'))
 			let locked += [ i+1 ]
@@ -381,7 +383,7 @@ function! g:ShowRegisters(...)
 	let num = len(g:mnemosyne_register_list)
 	echohl MoreMsg
 	if (show_all)
-		let reg_count = len(g:mnemosyne_registers)
+		let reg_count = len(s:mnemosyne_registers)
 		echo 'Mnemosyne: ' . reg_count . ' registers (locked*)'
 	else
 		let reg_count = num
@@ -397,12 +399,12 @@ function! g:ShowRegisters(...)
 		else
 			let letter = '!'
 		endif
-		let contents = g:mnemosyne_registers[i].data
+		let contents = s:mnemosyne_registers[i].data
 		let contents = substitute (contents, nr2char(10), '^J', 'g')
 		let contents = substitute (contents, nr2char(13), '^M', 'g')
 		let contents = substitute (contents, ' ', '␣', 'g')
 		let contents = substitute (contents, '\%' . (&columns - 20) . 'v.*', ' ⋯', '')
-		let flags = (exists ('g:mnemosyne_registers[i].locked')) ? '*' : ' '
+		let flags = (exists ('s:mnemosyne_registers[i].locked')) ? '*' : ' '
 		echo printf ('  %s%s : %s', letter, flags, contents)
 	endfor
 endfunction
@@ -447,9 +449,9 @@ endfunction
 " <esc>, <space>, <enter> cancels
 
 function! g:InterceptQ()
-	if (g:mnemosyne_recording != '')
-		let reg = tolower (g:mnemosyne_recording)
-		let g:mnemosyne_recording = ''
+	if (s:mnemosyne_recording != '')
+		let reg = tolower (s:mnemosyne_recording)
+		let s:mnemosyne_recording = ''
 
 		normal! q
 		let val = substitute (getreg(reg), 'q$', '', '')
@@ -472,7 +474,7 @@ function! g:InterceptQ()
 	if (stridx (g:mnemosyne_register_list, c) < 0)
 		if (c =~ '[0-9a-zA-Z"]')
 			" Delegate and track
-			let g:mnemosyne_recording = c
+			let s:mnemosyne_recording = c
 			execute 'normal! q' . c
 		endif
 		return
@@ -480,7 +482,7 @@ function! g:InterceptQ()
 
 	" Intercept and track
 	call MoveRegisters()
-	let g:mnemosyne_recording = c
+	let s:mnemosyne_recording = c
 	execute 'normal! q' . c
 endfunction
 
