@@ -440,6 +440,25 @@ endfunction
 " nnoremap <silent> <F11> :<c-u>call MaintainList()<cr>
 " nnoremap <silent> <F12> :wincmd t<bar>only<bar>update<bar>source %<cr>
 
+" q no timeout waiting for register name
+" q{0-9a-zA-Z"}
+" q: q/ q?
+" <esc>, <space>, <enter> cancels
+
+function! g:InterceptQ()
+	let c = getchar()
+	if ((c >= 128) || (type(c) == type('')))
+		return
+	endif
+
+	echohl error
+	echom 'Intercept: q' . nr2char(c)
+	echohl none
+endfunction
+
+
+" nnoremap <silent> <buffer> q :<c-u>call InterceptQ()<cr>
+
 call ReadMacrosFromFile()
 
 nnoremap <silent> <leader>ml :call ShowRegisters(1)<cr>
