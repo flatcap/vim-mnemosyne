@@ -48,7 +48,6 @@ function! s:place_sign(buffer, line, char, locked)
 		let highlight = 'none'
 	endif
 
-	let mark = toupper (a:char)
 	if (a:char == '-')
 		let name = 'mnemosyne_dash' . a:locked
 	elseif (a:char == '!')
@@ -56,7 +55,7 @@ function! s:place_sign(buffer, line, char, locked)
 	else
 		let name = 'mnemosyne_' . a:char
 	endif
-	execute 'sign define ' . name . ' text=' . mark . ' texthl=' . highlight
+	execute 'sign define ' . name . ' text=' . a:char . ' texthl=' . highlight
 	execute 'sign place ' . a:line . ' name=' . name . ' line=' . a:line . ' buffer=' . a:buffer
 
 endfunction
@@ -226,9 +225,20 @@ function! g:SaveMacrosToFile (...)
 
 	let list = copy (s:file_header)
 
-	for i in g:mnemosyne_registers
-		let list += [ "\t" . i.data ]
+	let locked = []
+	let num = len(g:mnemosyne_registers)
+	for i in range(num)
+		let reg = g:mnemosyne_registers[i]
+		let list += [ reg.data ]
+		if (exists ('reg.locked'))
+			let locked += [ i+1 ]
+		endif
 	endfor
+
+	if (len (locked) > 0)
+		let line = '" Locked: ' . join (locked, ',')
+		call insert (list, line, 2)
+	endif
 
 	let file = expand (file)
 	call writefile (list, file)
@@ -260,7 +270,7 @@ function! g:OpenMacroWindow (...)
 	setlocal bufhidden=hide
 	setlocal nobuflisted
 	setlocal noswapfile
-	setlocal cursorline
+	" setlocal cursorline
 	setlocal filetype=vim
 	" setlocal list
 
@@ -312,68 +322,32 @@ function! g:ShowRegisters(...)
 
 	call SyncRegistersToVar()
 
-	let reg_count = len(g:mnemosyne_registers)
-	echo 'Mnemosyne registers (' . reg_count . ' entries):'
-
 	let num = len(g:mnemosyne_register_list)
+	echohl MoreMsg
+	if (show_all)
+		let reg_count = len(g:mnemosyne_registers)
+		echo 'Mnemosyne: ' . reg_count . ' registers (locked*)'
+	else
+		let reg_count = num
+		echo 'Mnemosyne: ' . reg_count . ' named registers (locked*)'
+	endif
+	echohl None
+
 	for i in range(reg_count)
-		if ((i >= num) && !show_all)
-			break
-		endif
-		let name = (i < num) ? g:mnemosyne_register_list[i] : '-'
-		let contents = g:mnemosyne_registers[i].data
-		let contents = substitute (contents, nr2char(10), '^J', 'g')
-		let contents = substitute (contents, nr2char(13), '^M', 'g')
-		let contents = substitute (contents, ' ', '␣', 'g')
-		let contents = substitute (contents, '\%' . (&columns - 20) . 'v.*', ' ⋯', '')
-		let flags = (exists ('i.locked')) ? '*' : ' '
-		echo printf ('  %s%s : %s', name, flags, contents)
-	endfor
-endfunction
-
-function! g:DumpRegisters(...)
-	let show_all = (a:0 > 0) ? a:1 : 0
-
-	call SyncRegistersToVar()
-
-	let reg_count = len(g:mnemosyne_registers)
-	echo 'Mnemosyne registers (' . reg_count . ' entries):'
-
-	let num = len(g:mnemosyne_register_list)
-	for i in range(reg_count)
-		if ((i >= num) && !show_all)
-			break
-		endif
-
-		let item = g:mnemosyne_registers[i]
-
-		let locked = (exists ('item.locked')) ? '*' : ''
 		if (i < num)
 			let letter = g:mnemosyne_register_list[i]
 		elseif (i < g:mnemosyne_max_macros)
 			let letter = '-'
 		else
-			let letter = '"'
+			let letter = '!'
 		endif
-		let data  = item.data
-		if (exists ('item.comment'))
-			if ((len (data > 2)) && (data[2] ==# 'u'))
-				echohl green
-			else
-				echohl red
-			endif
-			echo printf ("%s ", data)
-		else
-			if (letter =~? '[a-z]')
-				echohl yellow
-			elseif (letter == '-')
-				echohl cyan
-			else
-				echohl magenta
-			endif
-			echo printf ("%s%s\t%s", letter, locked, data)
-		endif
-		echohl none
+		let contents = g:mnemosyne_registers[i].data
+		let contents = substitute (contents, nr2char(10), '^J', 'g')
+		let contents = substitute (contents, nr2char(13), '^M', 'g')
+		let contents = substitute (contents, ' ', '␣', 'g')
+		let contents = substitute (contents, '\%' . (&columns - 20) . 'v.*', ' ⋯', '')
+		let flags = (exists ('g:mnemosyne_registers[i].locked')) ? '*' : ' '
+		echo printf ('  %s%s : %s', letter, flags, contents)
 	endfor
 endfunction
 
@@ -413,12 +387,8 @@ endfunction
 
 call ReadMacrosFromFile()
 
-nnoremap <silent> <leader>mc :call CloseMacroWindow()<cr>
-nnoremap <silent> <leader>md :call DumpRegisters(1)<cr>
-nnoremap <silent> <leader>ml :call ShowRegisters(0)<cr>
-nnoremap <silent> <leader>mL :call ShowRegisters(1)<cr>
+nnoremap <silent> <leader>ml :call ShowRegisters(1)<cr>
 nnoremap <silent> <leader>mm :call MoveRegisters()<cr>
-nnoremap <silent> <leader>mo :call OpenMacroWindow()<cr>
 nnoremap <silent> <leader>mr :wall<bar>source %<bar>call ReadMacrosFromFile()<cr>
 nnoremap <silent> <leader>ms :call SaveMacrosToFile()<cr>
 nnoremap <silent> <leader>mt :call ToggleMacroWindow()<cr>

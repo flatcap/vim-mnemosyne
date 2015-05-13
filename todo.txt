@@ -99,13 +99,6 @@ if a macro is locked, ignore changes in the register
 	on 'Sync', read registers into variable (skipping locked)
 	push variable back into registers
 
-change file format:
-	" HEADER
-	" Locked: 9,11,20
-	RAW_MACRO1
-	RAW_MACRO2
-	...
-
 edit mode
 	strip system comments?
 	strip blank lines?
@@ -113,4 +106,6 @@ edit mode
 	intercept :q :quit ZZ to leave edit mode
 	intercept :w etc to commit changes
 	edit mode mappings? (for what?)
+
+use comments for naming macros
 
