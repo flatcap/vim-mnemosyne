@@ -17,10 +17,17 @@ let s:file_header = [
 	\ '" https://github.com/flatcap/vim-mnemosyne'
 \ ]
 
+let s:window_comments = [
+	\ '" Mnemosyne - https://github.com/flatcap/vim-mnemosyne',
+	\ '" Named registers',
+	\ '" Unnamed registers',
+	\ '" Will be lost when vim is closed',
+\ ]
+
 " Set some default values
 if (!exists ('g:mnemosyne_macro_file'))     | let g:mnemosyne_macro_file     = '~/.vim/macros.vim' | endif
 if (!exists ('g:mnemosyne_magic_map_char')) | let g:mnemosyne_magic_map_char = 'a'                 | endif
-if (!exists ('g:mnemosyne_max_macros'))     | let g:mnemosyne_max_macros     = 20                  | endif
+if (!exists ('g:mnemosyne_max_macros'))     | let g:mnemosyne_max_macros     = 15                  | endif
 if (!exists ('g:mnemosyne_register_list'))  | let g:mnemosyne_register_list  = 'abcdefghij'        | endif
 if (!exists ('g:mnemosyne_show_help'))      | let g:mnemosyne_show_help      = 1                   | endif
 if (!exists ('g:mnemosyne_show_labels'))    | let g:mnemosyne_show_labels    = 1                   | endif
@@ -28,15 +35,35 @@ if (!exists ('g:mnemosyne_split_vertical')) | let g:mnemosyne_split_vertical = 1
 
 let g:mnemosyne_registers = []
 
-function! WindowTogglePinned()
+function! WindowToggleLocked()
 	let line = getline('.')
 	let line = substitute (line, '\v^(\i)\**	(.*)', '\1*\2', '')
 	call setline (1, '" Mnemosyne.vim - Mistress of Macros')
 endfunction
 
+function! s:place_sign(buffer, line, char, locked)
+	if (a:locked)
+		let highlight = 'error'
+	else
+		let highlight = 'none'
+	endif
+
+	let mark = toupper (a:char)
+	if (a:char == '-')
+		let name = 'mnemosyne_dash' . a:locked
+	elseif (a:char == '!')
+		let name = 'mnemosyne_bang'
+	else
+		let name = 'mnemosyne_' . a:char
+	endif
+	execute 'sign define ' . name . ' text=' . mark . ' texthl=' . highlight
+	execute 'sign place ' . a:line . ' name=' . name . ' line=' . a:line . ' buffer=' . a:buffer
+
+endfunction
+
 function! s:create_mappings()
 	nnoremap <buffer> <silent> q :call CloseMacroWindow()<cr>
-	nnoremap <buffer> <silent> \p :call WindowTogglePinned()<cr>
+	nnoremap <buffer> <silent> \p :call WindowToggleLocked()<cr>
 endfunction
 
 function! s:populate_macro_window()
@@ -44,20 +71,56 @@ function! s:populate_macro_window()
 	setlocal paste
 	execute '%d'
 
-	call setline (1, '" Mnemosyne.vim - Mistress of Macros')
+	let named   = len (g:mnemosyne_register_list)
+	let unnamed = g:mnemosyne_max_macros
 
-	let reg_count = len(g:mnemosyne_registers)
-	for i in range(reg_count)
-		let name = (i < len(g:mnemosyne_register_list)) ? g:mnemosyne_register_list[i] : '-'
-		if (exists ('g:mnemosyne_registers[i].pinned'))
-			let name .= '*'
+	let num = len (g:mnemosyne_registers)
+	let comment1 = -1
+	let comment2 = -1
+
+	let buf_num = bufnr('%')
+	execute 'sign unplace * buffer=' . buf_num
+
+	let reg_count = 0
+	for i in range(num)
+
+		if (reg_count < named)
+			let letter = g:mnemosyne_register_list[reg_count]
+		elseif (reg_count < unnamed)
+			let letter = '-'
+		else
+			let letter = '!'
 		endif
-		execute 'normal! o' . name . "\t"
-		let @" = g:mnemosyne_registers[i].data
-		if (len (@") > 0)
-			execute 'normal! ""p'
+
+		if (reg_count == named)
+			let comment1 = i
 		endif
+		if (reg_count == unnamed)
+			let comment2 = i
+		endif
+		let reg_count += 1
+
+		let locked = exists ('g:mnemosyne_registers[i].locked')
+		let line = line('$')
+		let text = g:mnemosyne_registers[i].data
+		call append (line-1, text)
+
+		call s:place_sign (buf_num, line, letter, locked)
 	endfor
+
+	if (comment2 >= 0)
+		call append (comment2, s:window_comments[3])
+		call append (comment2, '')
+	endif
+	if (comment1 >= 0)
+		call append (comment1, s:window_comments[2])
+		call append (comment1, '')
+	endif
+	if (reg_count > 0)
+		call append (0, s:window_comments[1])
+	endif
+	call append (0, '')
+	call append (0, s:window_comments[0])
 
 	let &paste = old_paste
 endfunction
@@ -71,6 +134,36 @@ function! s:find_window_number()
 	endfor
 
 	return -1
+endfunction
+
+function! s:is_file_comment (str)
+	for c in s:file_header
+		if (a:str == c)
+			return 1
+		endif
+	endfor
+
+	return 0
+endfunction
+
+function! s:parse_header(list)
+	let line = a:list[0]
+
+	let locked = []
+	for i in range(4, 0, -1)
+		let line = a:list[i]
+		if (s:is_file_comment(line))
+			unlet a:list[i]
+		endif
+
+		if (line =~? '^" Locked: ')
+			let line = substitute (line, '^" Locked: *', '', '')
+			let locked = split (line, ',')
+			unlet a:list[i]
+		endif
+
+	endfor
+	return locked
 endfunction
 
 
@@ -106,20 +199,21 @@ function! g:ReadMacrosFromFile (...)
 	let file = expand (file)
 	let list = readfile (file)
 
-	let num = len (list)
-	for i in range (num)
-		let line = list[i]
-		if (line =~ '^\s*"')
+	let g:mnemosyne_registers = []
+
+	let locked = s:parse_header (list)
+
+	let reg_index = 0
+	for line in list
+		if ((line =~ '^\s*$') || (line =~ '^\s*".*$'))
 			continue
 		endif
 
-		let flags = substitute (line, '\t.*', '', '')
-		let data = substitute (line, '^.\{-\}\t', '', '')
+		let reg_index += 1
+		let entry = { 'data' : line }
 
-		let entry = { 'data' : data }
-
-		if (flags =~? 'p')
-			let entry.pinned = 1
+		if (index (locked, ''.reg_index) >= 0)
+			let entry.locked = 1
 		endif
 
 		call add (g:mnemosyne_registers, entry)
@@ -176,7 +270,7 @@ function! g:OpenMacroWindow (...)
 
 	call s:create_mappings()
 
-	normal 2G
+	normal 1G
 endfunction
 
 function! g:CloseMacroWindow()
@@ -232,12 +326,58 @@ function! g:ShowRegisters(...)
 		let contents = substitute (contents, nr2char(13), '^M', 'g')
 		let contents = substitute (contents, ' ', '␣', 'g')
 		let contents = substitute (contents, '\%' . (&columns - 20) . 'v.*', ' ⋯', '')
-		let flags = (exists ('i.pinned')) ? '*' : ' '
+		let flags = (exists ('i.locked')) ? '*' : ' '
 		echo printf ('  %s%s : %s', name, flags, contents)
 	endfor
 endfunction
 
-function! g:PinMacro (name, pin)
+function! g:DumpRegisters(...)
+	let show_all = (a:0 > 0) ? a:1 : 0
+
+	call SyncRegistersToVar()
+
+	let reg_count = len(g:mnemosyne_registers)
+	echo 'Mnemosyne registers (' . reg_count . ' entries):'
+
+	let num = len(g:mnemosyne_register_list)
+	for i in range(reg_count)
+		if ((i >= num) && !show_all)
+			break
+		endif
+
+		let item = g:mnemosyne_registers[i]
+
+		let locked = (exists ('item.locked')) ? '*' : ''
+		if (i < num)
+			let letter = g:mnemosyne_register_list[i]
+		elseif (i < g:mnemosyne_max_macros)
+			let letter = '-'
+		else
+			let letter = '"'
+		endif
+		let data  = item.data
+		if (exists ('item.comment'))
+			if ((len (data > 2)) && (data[2] ==# 'u'))
+				echohl green
+			else
+				echohl red
+			endif
+			echo printf ("%s ", data)
+		else
+			if (letter =~? '[a-z]')
+				echohl yellow
+			elseif (letter == '-')
+				echohl cyan
+			else
+				echohl magenta
+			endif
+			echo printf ("%s%s\t%s", letter, locked, data)
+		endif
+		echohl none
+	endfor
+endfunction
+
+function! g:LockMacro (name, lock)
 	let i = stridx (g:mnemosyne_register_list, a:name)
 	if (i < 0)
 		let i = a:name
@@ -251,10 +391,10 @@ function! g:PinMacro (name, pin)
 	endif
 	echom 'MATCH'
 	echo g:mnemosyne_registers[i]
-	if (a:pin)
-		let g:mnemosyne_registers[i].pinned = 1
+	if (a:lock)
+		let g:mnemosyne_registers[i].locked = 1
 	else
-		unlet g:mnemosyne_registers[i].pinned
+		unlet g:mnemosyne_registers[i].locked
 	endif
 	echo g:mnemosyne_registers[i]
 endfunction
@@ -274,11 +414,12 @@ endfunction
 call ReadMacrosFromFile()
 
 nnoremap <silent> <leader>mc :call CloseMacroWindow()<cr>
+nnoremap <silent> <leader>md :call DumpRegisters(1)<cr>
 nnoremap <silent> <leader>ml :call ShowRegisters(0)<cr>
 nnoremap <silent> <leader>mL :call ShowRegisters(1)<cr>
 nnoremap <silent> <leader>mm :call MoveRegisters()<cr>
 nnoremap <silent> <leader>mo :call OpenMacroWindow()<cr>
-nnoremap <silent> <leader>mr :call ReadMacrosFromFile()<cr>
+nnoremap <silent> <leader>mr :wall<bar>source %<bar>call ReadMacrosFromFile()<cr>
 nnoremap <silent> <leader>ms :call SaveMacrosToFile()<cr>
 nnoremap <silent> <leader>mt :call ToggleMacroWindow()<cr>
 nnoremap <silent> <leader>mv :call SyncRegistersToVar()<cr>
