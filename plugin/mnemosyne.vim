@@ -418,6 +418,28 @@ function! g:ClearRegisters()
 endfunction
 
 
+function! g:LastEdit()
+	let undo = undotree()
+	return undo.time_cur
+endfunction
+
+function! g:MaintainList()
+	let cursor = getpos ('.')
+	call s:strip_out_system_comments()
+	call s:insert_system_comments()
+	call s:populate_window()
+	call setpos ('.', cursor)
+endfunction
+
+
+" augroup MaintainList
+" 	autocmd!
+" 	autocmd CursorMoved <buffer=2> call MaintainList()
+" augroup END
+
+" nnoremap <silent> <F11> :<c-u>call MaintainList()<cr>
+" nnoremap <silent> <F12> :wincmd t<bar>only<bar>update<bar>source %<cr>
+
 call ReadMacrosFromFile()
 
 nnoremap <silent> <leader>ml :call ShowRegisters(1)<cr>
