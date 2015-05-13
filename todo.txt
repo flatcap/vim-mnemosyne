@@ -121,3 +121,12 @@ have non-modal open_window command
 have a q-<esc> mapping to abort a recording?
 	would interfere with q-getchar()
 
+create marks for each register for faster navigation
+	a-j for registers
+	special mapping `- for unnamed
+	special mapping `! for lost
+
+b:modal_cursor
+	if it exists restore the cursor on entry
+	otherwise 1G
+

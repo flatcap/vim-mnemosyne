@@ -26,17 +26,21 @@ let s:window_comments = [
 
 " Set some default values
 if (!exists ('g:mnemosyne_macro_file'))     | let g:mnemosyne_macro_file     = '~/.vim/macros.vim' | endif
-if (!exists ('g:mnemosyne_magic_map_char')) | let g:mnemosyne_magic_map_char = 'a'                 | endif
 if (!exists ('g:mnemosyne_max_macros'))     | let g:mnemosyne_max_macros     = 15                  | endif
 if (!exists ('g:mnemosyne_register_list'))  | let g:mnemosyne_register_list  = 'abcdefghij'        | endif
-if (!exists ('g:mnemosyne_show_help'))      | let g:mnemosyne_show_help      = 1                   | endif
-if (!exists ('g:mnemosyne_show_labels'))    | let g:mnemosyne_show_labels    = 1                   | endif
+if (!exists ('g:mnemosyne_modal_window'))   | let g:mnemosyne_modal_window   = 1                   | endif
 if (!exists ('g:mnemosyne_split_vertical')) | let g:mnemosyne_split_vertical = 1                   | endif
+if (!exists ('g:mnemosyne_window_size'))    | let g:mnemosyne_window_size    = 30                  | endif
+
+" if (!exists ('g:mnemosyne_magic_map_char')) | let g:mnemosyne_magic_map_char = 'a'                 | endif
+" if (!exists ('g:mnemosyne_show_help'))      | let g:mnemosyne_show_help      = 1                   | endif
 
 let s:mnemosyne_recording = ''
 let s:mnemosyne_registers = []
 
 function! s:place_sign(buffer, line, char, locked)
+	call setpos ("'" . a:char, [a:buffer, a:line, 1, 0])
+
 	if (a:locked)
 		let highlight = 'error'
 	else
@@ -52,12 +56,17 @@ function! s:place_sign(buffer, line, char, locked)
 	endif
 	execute 'sign define ' . name . ' text=' . a:char . ' texthl=' . highlight
 	execute 'sign place ' . a:line . ' name=' . name . ' line=' . a:line . ' buffer=' . a:buffer
-
 endfunction
 
 function! s:create_mappings()
-	nnoremap <buffer> <silent> q :call CloseMacroWindow()<cr>
+	nnoremap <buffer> <silent> q :call CloseWindow()<cr>
 	nnoremap <buffer> <silent> \p :call WindowToggleLocked()<cr>
+
+	augroup MaintainList
+		autocmd!
+		autocmd BufWinLeave <buffer> let b:cursor = getpos ('.')
+	augroup END
+
 endfunction
 
 function! s:populate_macro_window()
@@ -74,10 +83,10 @@ function! s:populate_macro_window()
 
 	let buf_num = bufnr('%')
 	execute 'sign unplace * buffer=' . buf_num
+	execute 'delmarks!'
 
 	let reg_count = 0
 	for i in range(num)
-
 		if (reg_count < named)
 			let letter = g:mnemosyne_register_list[reg_count]
 		elseif (reg_count < unnamed)
@@ -190,7 +199,7 @@ function! s:get_index (line_num)
 	return index
 endfunction
 
-function! g:WindowToggleLocked()
+function! WindowToggleLocked()
 	let line_num = getpos('.')[1]
 	let index = s:get_index (line_num)
 	if (index < 0)
@@ -224,7 +233,7 @@ function! g:WindowToggleLocked()
 endfunction
 
 
-function! g:SyncRegistersToVar()
+function! SyncRegistersToVar()
 	let reg_count = len (g:mnemosyne_register_list)
 
 	for i in range (reg_count)
@@ -234,7 +243,7 @@ function! g:SyncRegistersToVar()
 	endfor
 endfunction
 
-function! g:MoveRegisters()
+function! MoveRegisters()
 	call SyncRegistersToVar()
 
 	call insert (s:mnemosyne_registers, { 'data': '' }, 0)
@@ -242,7 +251,7 @@ function! g:MoveRegisters()
 	call SetRegisters()
 endfunction
 
-function! g:SetRegisters()
+function! SetRegisters()
 	let reg_count = len (g:mnemosyne_register_list)
 	for i in range (reg_count)
 		let reg = nr2char (char2nr('a')+i)
@@ -251,7 +260,7 @@ function! g:SetRegisters()
 	endfor
 endfunction
 
-function! g:ReadMacrosFromFile (...)
+function! ReadMacrosFromFile (...)
 	let file = (a:0 > 0) ? a:1 : g:mnemosyne_macro_file
 	let file = expand (file)
 	let list = readfile (file)
@@ -278,7 +287,7 @@ function! g:ReadMacrosFromFile (...)
 	call SetRegisters()
 endfunction
 
-function! g:SaveMacrosToFile (...)
+function! SaveMacrosToFile (...)
 	let file = (a:0 > 0) ? a:1 : g:mnemosyne_macro_file
 
 	let list = copy (s:file_header)
@@ -303,7 +312,7 @@ function! g:SaveMacrosToFile (...)
 endfunction
 
 
-function! g:OpenMacroWindow (...)
+function! OpenWindow()
 	let winnum = s:find_window_number()
 	if (winnum >= 0)
 		execute winnum . 'wincmd w'
@@ -314,68 +323,107 @@ function! g:OpenMacroWindow (...)
 	let cursor = getpos ('.')
 
 	let mod_buf = bufnr (s:window_name)
-	if (mod_buf < 0)
-		execute 'silent enew'
-		execute 'silent file ' . s:window_name
+
+	if (g:mnemosyne_modal_window)
+		" Modal Window
+		if (mod_buf < 0)
+			" Create new buffer
+			execute 'silent enew'
+			execute 'silent file ' . s:window_name
+			call s:create_mappings()
+		else
+			" Recycle existing buffer
+			execute 'silent ' . mod_buf . 'buffer'
+		endif
+
+		let w:return_buffer = bufnum
+		let w:return_cursor = cursor
+
 	else
-		execute 'silent ' . mod_buf . 'buffer'
+		" Split Window
+		let vertical = (g:mnemosyne_split_vertical) ? 'vertical' : ''
+		if (mod_buf < 0)
+			" Create new buffer
+			execute 'silent ' . vertical . ' split'
+			execute 'silent file ' . s:window_name
+			call s:create_mappings()
+		else
+			" Recycle existing buffer
+			execute 'silent ' . vertical . ' split'
+			execute 'silent ' . mod_buf . 'buffer'
+		endif
+
+		unlet! w:return_buffer
+		unlet! w:return_cursor
 	endif
 
-	let w:return_buffer = bufnum
-	let w:return_cursor = cursor
+	if (!g:mnemosyne_modal_window && (g:mnemosyne_window_size > 0))
+		if (g:mnemosyne_split_vertical)
+			echom 'wincmd ' . g:mnemosyne_window_size . '|'
+		else
+			echom 'wincmd ' . g:mnemosyne_window_size . '_'
+		endif
+	endif
 
 	setlocal buftype=nofile
 	setlocal bufhidden=hide
 	setlocal nobuflisted
 	setlocal noswapfile
-	" setlocal cursorline
 	setlocal filetype=vim
-	" setlocal list
+	" setlocal cursorline
 
 	setlocal modifiable
 	call s:populate_macro_window()
 	setlocal nomodifiable
 
-	call s:create_mappings()
-
-	normal 1G
+	if (exists ('b:cursor'))
+		call setpos ('.', b:cursor)
+	else
+		normal 1G
+	endif
 endfunction
 
-function! g:CloseMacroWindow()
-	let winnum = s:find_window_number()
-	if (winnum < 0)
+function! CloseWindow()
+	let win_macro = s:find_window_number()
+	if (win_macro < 0)
 		return
 	endif
 
-	let this_win = winnr()
-	if (winnum != this_win)
-		execute winnum . 'wincmd w'
+	let cur_user = getpos('.')
+	let win_user = winnr()
+
+	if (win_macro != win_user)
+		execute win_macro . 'wincmd w'
 	endif
 
-	if (exists ('w:return_buffer'))
-		" execute 'silent ' . w:return_buffer . 'buffer'
+	" We're now IN the Macro Window
+
+	if (exists ('w:return_buffer') && exists ('w:return_cursor'))
+		" Modal Window
 		execute w:return_buffer . 'buffer'
-	endif
-
-	if (exists ('w:return_cursor'))
 		call setpos ('.', w:return_cursor)
+	else
+		" Split Window
+		quit!
 	endif
 
-	if (this_win != winnr())
-		execute this_win . 'wincmd w'
+	if (win_macro != win_user)
+		execute win_user . 'wincmd w'
+		call setpos ('.', cur_user)
 	endif
 endfunction
 
-function! g:ToggleMacroWindow()
+function! ToggleWindow()
 	let win_num = s:find_window_number()
 	if (win_num >= 0)
-		call CloseMacroWindow()
+		call CloseWindow()
 	else
-		call OpenMacroWindow()
+		call OpenWindow()
 	endif
 endfunction
 
-function! g:ShowRegisters(...)
+
+function! ShowRegisters(...)
 	let show_all = (a:0 > 0) ? a:1 : 0
 
 	call SyncRegistersToVar()
@@ -409,8 +457,7 @@ function! g:ShowRegisters(...)
 	endfor
 endfunction
 
-
-function! g:ClearRegisters()
+function! ClearRegisters()
 	for i in range (10)
 		call setreg (i, '')
 	endfor
@@ -421,12 +468,12 @@ function! g:ClearRegisters()
 endfunction
 
 
-function! g:LastEdit()
+function! LastEdit()
 	let undo = undotree()
 	return undo.time_cur
 endfunction
 
-function! g:MaintainList()
+function! MaintainList()
 	let cursor = getpos ('.')
 	call s:strip_out_system_comments()
 	call s:insert_system_comments()
@@ -448,7 +495,7 @@ endfunction
 " q: q/ q?
 " <esc>, <space>, <enter> cancels
 
-function! g:InterceptQ()
+function! InterceptQ()
 	if (s:mnemosyne_recording != '')
 		let reg = tolower (s:mnemosyne_recording)
 		let s:mnemosyne_recording = ''
@@ -487,7 +534,7 @@ function! g:InterceptQ()
 endfunction
 
 
-nnoremap <silent> q :<c-u>call InterceptQ()<cr>
+" nnoremap <silent> q :<c-u>call InterceptQ()<cr>
 
 call ReadMacrosFromFile()
 
@@ -495,7 +542,7 @@ nnoremap <silent> <leader>ml :call ShowRegisters(1)<cr>
 nnoremap <silent> <leader>mm :call MoveRegisters()<cr>
 nnoremap <silent> <leader>mr :wall<bar>source %<bar>call ReadMacrosFromFile()<cr>
 nnoremap <silent> <leader>ms :call SaveMacrosToFile()<cr>
-nnoremap <silent> <leader>mt :call ToggleMacroWindow()<cr>
+nnoremap <silent> <leader>mt :call ToggleWindow()<cr>
 nnoremap <silent> <leader>mv :call SyncRegistersToVar()<cr>
 nnoremap <silent> <leader>mx :call ClearRegisters()<cr>
 nnoremap <silent> <leader>mn :call WindowToggleLocked()<cr>
@@ -504,3 +551,6 @@ nnoremap <silent> <F12> :update<cr>:source plugin/mnemosyne.vim<cr>
 
 " nnoremap <silent> qa :call MoveRegisters()<cr>qa
 " nnoremap <silent> q  q:call SyncRegistersToVar()<cr>
+
+" nnoremap `- /^" Unnamed/+1<cr>
+" nnoremap `! /^" Will/+1<cr>
