@@ -109,3 +109,5 @@ edit mode
 
 use comments for naming macros
 
+de-dupe macros (make it easier to manage)
+
