@@ -1,7 +1,4 @@
 
-Autocmd <buffer> or <buffer=99>
-	BufNewFile
-
 Read config from file on:
 	plugin start
 	autocmd VimEnter
@@ -35,13 +32,6 @@ Macro window mappings
 	<cr>  execute
 	d     disable (toggle) => comment it out
 
-Let the user 'source' the macro files?
-	autocmd SourcePre	before sourcing a Vim script
-	autocmd SourceCmd	before sourcing a Vim script |Cmd-event|
-
-Functions
-	WipeRegisters([list])
-
 Like git rebase:
 	reorder list
 	add items
@@ -72,7 +62,9 @@ Syntax for macro window
 	^[-a-zA-Z]\**	.*
 	match regex to register config
 
-Option: move pinned macros to end of list
+Option
+	move pinned macros to end of list
+	don't give the focus to a split window
 
 to prevent accidents?
 	map q <nop>
@@ -83,8 +75,6 @@ need to map
 	qA startmacro() no rotate
 
 don't rotate empty registers?
-
-on WinLeave, save the cursor position in a window-local variable
 
 refresh to update indices
 
@@ -116,4 +106,13 @@ speed up window population
 	create first (including comments)
 	then create window
 	populate
+
+Intercept Q needs to allow any register in our list
+and effect the correct "move"
+unless the register is locked => error message
+
+localleader (config option)
+
+example autocmd for the user to set things
+	bufenter __mnemosyne__ ?
 
