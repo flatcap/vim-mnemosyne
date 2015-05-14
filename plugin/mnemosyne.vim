@@ -28,9 +28,12 @@ let s:window_comments = [
 if (!exists ('g:mnemosyne_macro_file'))     | let g:mnemosyne_macro_file     = '~/.vim/macros.vim' | endif
 if (!exists ('g:mnemosyne_max_macros'))     | let g:mnemosyne_max_macros     = 15                  | endif
 if (!exists ('g:mnemosyne_register_list'))  | let g:mnemosyne_register_list  = 'abcdefghij'        | endif
-if (!exists ('g:mnemosyne_modal_window'))   | let g:mnemosyne_modal_window   = 1                   | endif
+if (!exists ('g:mnemosyne_modal_window'))   | let g:mnemosyne_modal_window   = 0                   | endif
 if (!exists ('g:mnemosyne_split_vertical')) | let g:mnemosyne_split_vertical = 1                   | endif
 if (!exists ('g:mnemosyne_window_size'))    | let g:mnemosyne_window_size    = 30                  | endif
+
+let s:highlight_normal = 'm_normal'
+let s:highlight_locked = 'm_locked'
 
 " if (!exists ('g:mnemosyne_magic_map_char')) | let g:mnemosyne_magic_map_char = 'a'                 | endif
 " if (!exists ('g:mnemosyne_show_help'))      | let g:mnemosyne_show_help      = 1                   | endif
@@ -42,9 +45,9 @@ function! s:place_sign(buffer, line, char, locked)
 	call setpos ("'" . a:char, [a:buffer, a:line, 1, 0])
 
 	if (a:locked)
-		let highlight = 'error'
+		let highlight = s:highlight_locked
 	else
-		let highlight = 'none'
+		let highlight = s:highlight_normal
 	endif
 
 	if (a:char == '-')
@@ -578,6 +581,7 @@ nnoremap <silent> <leader>mn :call WindowToggleLocked()<cr>
 
 nnoremap <silent> <F12> :update<cr>:source plugin/mnemosyne.vim<cr>
 
-" nnoremap <silent> qa :call MoveRegisters()<cr>qa
-" nnoremap <silent> q  q:call SyncRegistersToVar()<cr>
+highlight m_normal   ctermfg=red      ctermbg=white
+highlight m_locked   ctermfg=blue     ctermbg=yellow
+highlight SignColumn ctermbg=magenta
 
