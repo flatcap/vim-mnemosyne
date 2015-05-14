@@ -236,12 +236,19 @@ endfunction
 
 
 function! SyncRegistersToVar()
-	let reg_count = len (g:mnemosyne_register_list)
+	let count_var = len(s:mnemosyne_registers)
+	let count_reg = len (g:mnemosyne_register_list)
 
-	for i in range (reg_count)
+	if (count_var < count_reg)
+		" Our variable's empty, create some dummy entries
+		for i in range (count_reg - count_var)
+			let s:mnemosyne_registers += [ { 'data': '' } ]
+		endfor
+	endif
+
+	for i in range (count_reg)
 		let reg = nr2char (char2nr('a')+i)
-		let data = getreg (reg)
-		let s:mnemosyne_registers[i].data = data
+		let s:mnemosyne_registers[i].data = getreg (reg)
 	endfor
 endfunction
 
@@ -250,12 +257,12 @@ function! MoveRegisters()
 
 	call insert (s:mnemosyne_registers, { 'data': '' }, 0)
 
-	call SetRegisters()
+	call SyncVarToRegisters()
 endfunction
 
-function! SetRegisters()
-	let reg_count = len (g:mnemosyne_register_list)
-	for i in range (reg_count)
+function! SyncVarToRegisters()
+	let count_reg = len (g:mnemosyne_register_list)
+	for i in range (count_reg)
 		let reg = nr2char (char2nr('a')+i)
 		let data = s:mnemosyne_registers[i].data
 		call setreg (reg, data)
@@ -291,7 +298,7 @@ function! ReadMacrosFromFile (...)
 
 		call add (s:mnemosyne_registers, entry)
 	endfor
-	call SetRegisters()
+	call SyncVarToRegisters()
 endfunction
 
 function! SaveMacrosToFile (...)
@@ -327,6 +334,8 @@ function! OpenWindow(...)
 	let opt_modal = (a:0 > 0) ? a:1 : g:mnemosyne_modal_window
 	let opt_vert  = (a:0 > 1) ? a:2 : g:mnemosyne_split_vertical
 	let opt_size  = (a:0 > 2) ? a:3 : g:mnemosyne_window_size
+
+	call SyncRegistersToVar()
 
 	let winnum = s:find_window_number()
 	if (winnum >= 0)
@@ -442,19 +451,25 @@ function! ShowRegisters(...)
 
 	call SyncRegistersToVar()
 
-	let num = len(g:mnemosyne_register_list)
+	let count_var = len(s:mnemosyne_registers)
+	let count_reg = len(g:mnemosyne_register_list)
+
+	if (!count_var)
+		return
+	endif
+
 	echohl MoreMsg
 	if (show_all)
-		let reg_count = len(s:mnemosyne_registers)
-		echo 'Mnemosyne: ' . reg_count . ' registers (locked*)'
+		let count_display = count_var
+		echo 'Mnemosyne: ' . count_display . ' registers (locked*)'
 	else
-		let reg_count = num
-		echo 'Mnemosyne: ' . reg_count . ' named registers (locked*)'
+		let count_display = count_reg
+		echo 'Mnemosyne: ' . count_display . ' named registers (locked*)'
 	endif
 	echohl None
 
-	for i in range(reg_count)
-		if (i < num)
+	for i in range(count_display)
+		if (i < count_reg)
 			let letter = g:mnemosyne_register_list[i]
 		elseif (i < g:mnemosyne_max_macros)
 			let letter = '-'
