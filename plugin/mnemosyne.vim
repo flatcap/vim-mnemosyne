@@ -10,6 +10,17 @@
 " endif
 " let g:loaded_mnemosyne = 1
 
+" Set some default values
+if (!exists ('g:mnemosyne_macro_file'))     | let g:mnemosyne_macro_file     = '~/.vim/macros.vim' | endif
+if (!exists ('g:mnemosyne_max_macros'))     | let g:mnemosyne_max_macros     = 15                  | endif
+if (!exists ('g:mnemosyne_register_list'))  | let g:mnemosyne_register_list  = 'abcdefghij'        | endif
+if (!exists ('g:mnemosyne_modal_window'))   | let g:mnemosyne_modal_window   = 0                   | endif
+if (!exists ('g:mnemosyne_split_vertical')) | let g:mnemosyne_split_vertical = 1                   | endif
+if (!exists ('g:mnemosyne_window_size'))    | let g:mnemosyne_window_size    = 30                  | endif
+
+" if (!exists ('g:mnemosyne_magic_map_char')) | let g:mnemosyne_magic_map_char = 'a'                 | endif
+" if (!exists ('g:mnemosyne_show_help'))      | let g:mnemosyne_show_help      = 1                   | endif
+
 let s:window_name = '__mnemosyne__'
 
 let s:file_header = [
@@ -24,19 +35,8 @@ let s:window_comments = [
 	\ '" Will be lost when vim is closed',
 \ ]
 
-" Set some default values
-if (!exists ('g:mnemosyne_macro_file'))     | let g:mnemosyne_macro_file     = '~/.vim/macros.vim' | endif
-if (!exists ('g:mnemosyne_max_macros'))     | let g:mnemosyne_max_macros     = 15                  | endif
-if (!exists ('g:mnemosyne_register_list'))  | let g:mnemosyne_register_list  = 'abcdefghij'        | endif
-if (!exists ('g:mnemosyne_modal_window'))   | let g:mnemosyne_modal_window   = 0                   | endif
-if (!exists ('g:mnemosyne_split_vertical')) | let g:mnemosyne_split_vertical = 1                   | endif
-if (!exists ('g:mnemosyne_window_size'))    | let g:mnemosyne_window_size    = 30                  | endif
-
-let s:highlight_normal = 'm_normal'
-let s:highlight_locked = 'm_locked'
-
-" if (!exists ('g:mnemosyne_magic_map_char')) | let g:mnemosyne_magic_map_char = 'a'                 | endif
-" if (!exists ('g:mnemosyne_show_help'))      | let g:mnemosyne_show_help      = 1                   | endif
+let s:highlight_normal = 'mnemosyne_normal'
+let s:highlight_locked = 'mnemosyne_locked'
 
 let s:mnemosyne_recording = ''
 let s:mnemosyne_registers = []
@@ -67,10 +67,9 @@ function! s:create_mappings()
 	nnoremap <buffer> <silent> `- /^" Unnamed/+1<cr>
 	nnoremap <buffer> <silent> `! /^" Will/+1<cr>
 
-	augroup MaintainList
+	augroup MacroWindow
 		autocmd!
 		autocmd BufWinLeave <buffer> let b:cursor = getpos ('.')
-		autocmd VimLeavePre <buffer> call SaveMacrosToFile()
 	augroup END
 endfunction
 
@@ -165,10 +164,11 @@ function! s:is_window_comment (str)
 endfunction
 
 function! s:parse_header(list)
-	let line = a:list[0]
-
 	let locked = []
-	for i in range(4, 0, -1)
+	" Scan at more the first 4 lines
+	let end = min ([4, len(a:list)-1])
+
+	for i in range(end, 1, -1)
 		let line = a:list[i]
 		if (s:is_file_comment(line))
 			unlet a:list[i]
@@ -235,6 +235,8 @@ function! WindowToggleLocked()
 	if (letter != '!')
 		call s:place_sign (buf_num, line_num, letter, locked)
 	endif
+
+	call SyncVarToRegisters()
 endfunction
 
 
@@ -260,12 +262,23 @@ function! MoveRegisters()
 
 	call insert (s:mnemosyne_registers, { 'data': '' }, 0)
 
+	let num = len(s:mnemosyne_registers)
+	for i in range(num)
+		let reg = s:mnemosyne_registers[i]
+		if (exists ('reg.locked'))
+			let tmp = s:mnemosyne_registers[i-1]
+			let s:mnemosyne_registers[i-1] = s:mnemosyne_registers[i]
+			let s:mnemosyne_registers[i] = tmp
+		endif
+	endfor
+
 	call SyncVarToRegisters()
+	call ShowRegisters(1)
 endfunction
 
 function! SyncVarToRegisters()
-	let count_reg = len (g:mnemosyne_register_list)
-	for i in range (count_reg)
+	let count_max = min ([len (g:mnemosyne_register_list), len(s:mnemosyne_registers)])
+	for i in range (count_max)
 		let reg = nr2char (char2nr('a')+i)
 		let data = s:mnemosyne_registers[i].data
 		call setreg (reg, data)
@@ -308,15 +321,28 @@ function! SaveMacrosToFile (...)
 	let file = (a:0 > 0) ? a:1 : g:mnemosyne_macro_file
 	let file = expand (file)
 
-	if (!filewritable (file))
+	let dir = fnamemodify (file, ':h')
+	if (!isdirectory (dir))
+		echom 'NO DIR: ' . dir
+		return
+	endif
+	if (!filewritable (dir))
+		echom 'NO DIR WRITE: ' . file
 		return
 	endif
 
+	call SyncRegistersToVar()
+
 	let list = copy (s:file_header)
 
+	let count_var = len(s:mnemosyne_registers)
+	let count_reg = len (g:mnemosyne_register_list)
+	let count_max = min ([count_var, g:mnemosyne_max_macros])
+	echom printf ('%d, %d, %d', count_var, count_reg, count_max)
+
+	echom 'WRITE: ' . count_max . ' ENTRIES'
 	let locked = []
-	let num = len(s:mnemosyne_registers)
-	for i in range(num)
+	for i in range(count_max)
 		let reg = s:mnemosyne_registers[i]
 		let list += [ reg.data ]
 		if (exists ('reg.locked'))
@@ -533,7 +559,7 @@ function! InterceptQ()
 		let s:mnemosyne_recording = ''
 
 		normal! q
-		let val = substitute (getreg(reg), 'q$', '', '')
+		let val = substitute (getreg(reg), '\=q$', '', '')
 		call setreg (reg, val)
 		return
 	endif
@@ -566,7 +592,7 @@ function! InterceptQ()
 endfunction
 
 
-" nnoremap <silent> q :<c-u>call InterceptQ()<cr>
+nnoremap <silent> q :<c-u>call InterceptQ()<cr>
 
 call ReadMacrosFromFile()
 
@@ -581,7 +607,12 @@ nnoremap <silent> <leader>mn :call WindowToggleLocked()<cr>
 
 nnoremap <silent> <F12> :update<cr>:source plugin/mnemosyne.vim<cr>
 
-highlight m_normal   ctermfg=red      ctermbg=white
-highlight m_locked   ctermfg=blue     ctermbg=yellow
-highlight SignColumn ctermbg=magenta
+highlight mnemosyne_normal   ctermfg=red      ctermbg=white
+highlight mnemosyne_locked   ctermfg=yellow   ctermbg=blue
+highlight SignColumn         ctermbg=magenta
+
+augroup MacroGlobal
+	autocmd!
+	autocmd VimLeavePre * call SaveMacrosToFile()
+augroup END
 

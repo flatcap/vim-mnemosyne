@@ -112,3 +112,8 @@ on 'start recording' update macro window to [RECORDING]
 have a q-<esc> mapping to abort a recording?
 	would interfere with q-getchar()
 
+speed up window population
+	create first (including comments)
+	then create window
+	populate
+
