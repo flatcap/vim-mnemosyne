@@ -17,8 +17,6 @@ Save macros to memory on:
 	keypress q, etc
 
 Config
-	SplitVertical   = 1
-	SplitHorizontal = 0
 	verbose errors
 
 Macro window mappings
@@ -74,9 +72,6 @@ Syntax for macro window
 	^[-a-zA-Z]\**	.*
 	match regex to register config
 
-Clear other mappings?
-	mapclear <buffer>
-
 Option: move pinned macros to end of list
 
 to prevent accidents?
@@ -114,19 +109,6 @@ de-dupe macros (make it easier to manage)
 on 'start recording' update macro window to [RECORDING]
 	change sign too?
 
-have non-modal open_window command
-	open_win (width, vertical)
-	default to 'default width', mnem vert config
-
 have a q-<esc> mapping to abort a recording?
 	would interfere with q-getchar()
-
-create marks for each register for faster navigation
-	a-j for registers
-	special mapping `- for unnamed
-	special mapping `! for lost
-
-b:modal_cursor
-	if it exists restore the cursor on entry
-	otherwise 1G
 

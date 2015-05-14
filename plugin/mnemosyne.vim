@@ -61,12 +61,14 @@ endfunction
 function! s:create_mappings()
 	nnoremap <buffer> <silent> q :call CloseWindow()<cr>
 	nnoremap <buffer> <silent> \p :call WindowToggleLocked()<cr>
+	nnoremap <buffer> <silent> `- /^" Unnamed/+1<cr>
+	nnoremap <buffer> <silent> `! /^" Will/+1<cr>
 
 	augroup MaintainList
 		autocmd!
 		autocmd BufWinLeave <buffer> let b:cursor = getpos ('.')
+		autocmd VimLeavePre <buffer> call SaveMacrosToFile()
 	augroup END
-
 endfunction
 
 function! s:populate_macro_window()
@@ -263,6 +265,11 @@ endfunction
 function! ReadMacrosFromFile (...)
 	let file = (a:0 > 0) ? a:1 : g:mnemosyne_macro_file
 	let file = expand (file)
+
+	if (!filereadable (file))
+		return
+	endif
+
 	let list = readfile (file)
 
 	let s:mnemosyne_registers = []
@@ -289,6 +296,11 @@ endfunction
 
 function! SaveMacrosToFile (...)
 	let file = (a:0 > 0) ? a:1 : g:mnemosyne_macro_file
+	let file = expand (file)
+
+	if (!filewritable (file))
+		return
+	endif
 
 	let list = copy (s:file_header)
 
@@ -307,7 +319,6 @@ function! SaveMacrosToFile (...)
 		call insert (list, line, 2)
 	endif
 
-	let file = expand (file)
 	call writefile (list, file)
 endfunction
 
@@ -417,8 +428,8 @@ function! CloseWindow()
 endfunction
 
 function! ToggleWindow()
-	let win_num = s:find_window_number()
-	if (win_num >= 0)
+	let win_macro = s:find_window_number()
+	if (win_macro >= 0)
 		call CloseWindow()
 	else
 		call OpenWindow()
@@ -555,5 +566,3 @@ nnoremap <silent> <F12> :update<cr>:source plugin/mnemosyne.vim<cr>
 " nnoremap <silent> qa :call MoveRegisters()<cr>qa
 " nnoremap <silent> q  q:call SyncRegistersToVar()<cr>
 
-" nnoremap `- /^" Unnamed/+1<cr>
-" nnoremap `! /^" Will/+1<cr>
