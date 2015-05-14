@@ -312,7 +312,11 @@ function! SaveMacrosToFile (...)
 endfunction
 
 
-function! OpenWindow()
+function! OpenWindow(...)
+	let opt_modal = (a:0 > 0) ? a:1 : g:mnemosyne_modal_window
+	let opt_vert  = (a:0 > 1) ? a:2 : g:mnemosyne_split_vertical
+	let opt_size  = (a:0 > 2) ? a:3 : g:mnemosyne_window_size
+
 	let winnum = s:find_window_number()
 	if (winnum >= 0)
 		execute winnum . 'wincmd w'
@@ -324,7 +328,7 @@ function! OpenWindow()
 
 	let mod_buf = bufnr (s:window_name)
 
-	if (g:mnemosyne_modal_window)
+	if (opt_modal)
 		" Modal Window
 		if (mod_buf < 0)
 			" Create new buffer
@@ -338,13 +342,12 @@ function! OpenWindow()
 
 		let w:return_buffer = bufnum
 		let w:return_cursor = cursor
-
 	else
 		" Split Window
-		let vertical = (g:mnemosyne_split_vertical) ? 'vertical' : ''
+		let vertical = (opt_vert) ? 'vertical' : ''
 		if (mod_buf < 0)
 			" Create new buffer
-			execute 'silent ' . vertical . ' split'
+			execute 'silent ' . vertical . ' new'
 			execute 'silent file ' . s:window_name
 			call s:create_mappings()
 		else
@@ -357,11 +360,11 @@ function! OpenWindow()
 		unlet! w:return_cursor
 	endif
 
-	if (!g:mnemosyne_modal_window && (g:mnemosyne_window_size > 0))
-		if (g:mnemosyne_split_vertical)
-			echom 'wincmd ' . g:mnemosyne_window_size . '|'
+	if (!opt_modal && (opt_size > 0))
+		if (opt_vert)
+			execute opt_size . ' wincmd |'
 		else
-			echom 'wincmd ' . g:mnemosyne_window_size . '_'
+			execute opt_size . ' wincmd _'
 		endif
 	endif
 
