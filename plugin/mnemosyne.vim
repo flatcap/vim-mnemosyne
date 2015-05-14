@@ -16,10 +16,9 @@ if (!exists ('g:mnemosyne_max_macros'))     | let g:mnemosyne_max_macros     = 1
 if (!exists ('g:mnemosyne_register_list'))  | let g:mnemosyne_register_list  = 'abcdefghij'        | endif
 if (!exists ('g:mnemosyne_modal_window'))   | let g:mnemosyne_modal_window   = 0                   | endif
 if (!exists ('g:mnemosyne_split_vertical')) | let g:mnemosyne_split_vertical = 1                   | endif
-if (!exists ('g:mnemosyne_window_size'))    | let g:mnemosyne_window_size    = 15                  | endif
+if (!exists ('g:mnemosyne_window_size'))    | let g:mnemosyne_window_size    = 20                  | endif
 if (!exists ('g:mnemosyne_focus_window'))   | let g:mnemosyne_focus_window   = 0                   | endif
 
-" if (!exists ('g:mnemosyne_magic_map_char')) | let g:mnemosyne_magic_map_char = 'a'                 | endif
 " if (!exists ('g:mnemosyne_show_help'))      | let g:mnemosyne_show_help      = 1                   | endif
 
 let s:window_name = '__mnemosyne__'
@@ -263,13 +262,15 @@ function! SyncRegistersToVar()
 	endfor
 endfunction
 
-function! MoveRegisters()
+function! MoveRegisters(...)
+	let start = (a:0 > 0) ? a:1 : 0
+
 	call SyncRegistersToVar()
 
-	call insert (s:mnemosyne_registers, { 'data': '' }, 0)
+	call insert (s:mnemosyne_registers, { 'data': '' }, start)
 
-	let num = len(s:mnemosyne_registers)
-	for i in range(num)
+	let num = len(s:mnemosyne_registers) - 1
+	for i in range(start, num)
 		let reg = s:mnemosyne_registers[i]
 		if (exists ('reg.locked'))
 			let tmp = s:mnemosyne_registers[i-1]
@@ -564,7 +565,8 @@ function! InterceptQ()
 		return
 	endif
 
-	if (stridx (g:mnemosyne_register_list, c) < 0)
+	let index = stridx (g:mnemosyne_register_list, c)
+	if (index < 0)
 		if (c =~ '[0-9a-zA-Z"]')
 			" Delegate and track
 			let s:mnemosyne_recording = c
@@ -573,8 +575,17 @@ function! InterceptQ()
 		return
 	endif
 
+	let item = s:mnemosyne_registers[index]
+	if (exists ('item.locked'))
+		echohl error
+		echom 'Mnemosyne: Register ' . c . ' is locked'
+		echohl none
+		return
+	endif
+
 	" Intercept and track
-	call MoveRegisters()
+	echom 'index: ' . index
+	call MoveRegisters(index)
 	let s:mnemosyne_recording = c
 	execute 'normal! q' . c
 endfunction
@@ -600,7 +611,6 @@ call ReadMacrosFromFile()
 
 nnoremap <silent> <leader>ml :<c-u>call ShowRegisters(1)<cr>
 nnoremap <silent> <leader>mm :<c-u>call MoveRegisters()<cr>
-nnoremap <silent> <leader>mo :<c-u>call OpenWindow(0,1,15,0)<cr>
 nnoremap <silent> <leader>mr :<c-u>call ReadMacrosFromFile()<cr>
 nnoremap <silent> <leader>ms :<c-u>call SaveMacrosToFile()<cr>
 nnoremap <silent> <leader>mt :<c-u>call ToggleWindow()<cr>
