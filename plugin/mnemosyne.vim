@@ -466,6 +466,9 @@ function! OpenWindow(...)
 	setlocal noswapfile
 	setlocal filetype=vim
 
+	syntax match m_recording '^\[RECORDING\]$'
+	highlight m_recording ctermfg=red
+
 	setlocal modifiable
 	call s:populate_macro_window()
 	setlocal nomodifiable
@@ -588,6 +591,7 @@ function! InterceptQ()
 		let val = substitute (getreg(reg), '\=q$', '', '')
 		call setreg (reg, val)
 		call SyncRegistersToVar()
+		call Repopulate()
 		return
 	endif
 
@@ -626,6 +630,9 @@ function! InterceptQ()
 	call MoveRegisters(index)
 	let s:mnemosyne_recording = c
 	execute 'normal! q' . c
+
+	call setreg (c, '[RECORDING]')
+	call Repopulate()
 endfunction
 
 
