@@ -116,3 +116,18 @@ localleader (config option)
 example autocmd for the user to set things
 	bufenter __mnemosyne__ ?
 
+edit mode
+	enter edit mode
+	hide sign column?
+	do stuff
+	leave edit more OR leave window
+		sync to var
+		sync to regs
+how do I track the locked-ness if:
+	the number of lines changes
+	the order of lines changes
+	track 'marks' -- limits me to 26 locked registers
+	unless I sync the locked-ness after every change
+listen for cursormoved
+	if b:changedtick has changed sync to vars
+

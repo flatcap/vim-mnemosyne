@@ -132,6 +132,68 @@ function! s:populate_macro_window()
 	let &paste = old_paste
 endfunction
 
+function! PopulateMacroWindow()
+	" let count_var = len(s:mnemosyne_registers)
+	" let count_reg = len (g:mnemosyne_register_list)
+	" let count_max = min ([len (g:mnemosyne_register_list), len(s:mnemosyne_registers)])
+
+	let named   = len (g:mnemosyne_register_list)
+	let unnamed = g:mnemosyne_max_macros
+
+	let num = len (s:mnemosyne_registers)
+
+	let reg_count = 0
+	let rows = []
+
+	let rows += [ { 'data': s:window_comments[0] } ]
+
+	for i in range(num)
+		if (reg_count < named)
+			let letter = g:mnemosyne_register_list[reg_count]
+		elseif (reg_count < unnamed)
+			let letter = '-'
+		else
+			let letter = '!'
+		endif
+
+		if (reg_count == named)
+			let rows += [ { 'data': ''                   } ]
+			let rows += [ { 'data': s:window_comments[2] } ]
+		endif
+		if (reg_count == unnamed)
+			let rows += [ { 'data': ''                   } ]
+			let rows += [ { 'data': s:window_comments[3] } ]
+		endif
+
+		let reg_count += 1
+		if (reg_count == 1)
+			let rows += [ { 'data': ''                   } ]
+			let rows += [ { 'data': s:window_comments[1] } ]
+		endif
+
+
+		let locked = exists ('s:mnemosyne_registers[i].locked')
+		let text = s:mnemosyne_registers[i].data
+		if (locked)
+			let rows += [ { 'letter': letter, 'locked': locked, 'data': text } ]
+		else
+			let rows += [ { 'letter': letter, 'data': text } ]
+		endif
+	endfor
+
+	unlet i
+	for i in rows
+		let locked = (exists ('i.locked')) ? '*' : ' '
+		if (exists ('i.letter'))
+			echom printf ('  %s%s : %s', i.letter, locked, i.data)
+		else
+			echohl comment
+			echom printf ('%s ', i.data)
+			echohl none
+		endif
+	endfor
+endfunction
+
 function! s:find_window_number()
 	let win_max = winnr ('$')
 	for i in range (1, win_max)
@@ -201,6 +263,23 @@ function! s:get_index (line_num)
 		return -1
 	endif
 	return index
+endfunction
+
+
+function! Repopulate()
+	let winnum = s:find_window_number()
+	if (winnum < 0)
+		return
+	endif
+
+	" Save the user's current location
+	let cur_user = getpos('.')
+	let win_user = winnr()
+
+	execute winnum . 'wincmd w'
+
+	execute win_user . 'wincmd w'
+	call setpos ('.', cur_user)
 endfunction
 
 
@@ -550,6 +629,7 @@ function! InterceptQ()
 		normal! q
 		let val = substitute (getreg(reg), '\=q$', '', '')
 		call setreg (reg, val)
+		call SyncRegistersToVar()
 		return
 	endif
 
@@ -611,18 +691,19 @@ call ReadMacrosFromFile()
 
 nnoremap <silent> <leader>ml :<c-u>call ShowRegisters(1)<cr>
 nnoremap <silent> <leader>mm :<c-u>call MoveRegisters()<cr>
+nnoremap <silent> <leader>mn :<c-u>call WindowToggleLocked()<cr>
+nnoremap <silent> <leader>mp :<c-u>call PopulateMacroWindow()<cr>
 nnoremap <silent> <leader>mr :<c-u>call ReadMacrosFromFile()<cr>
 nnoremap <silent> <leader>ms :<c-u>call SaveMacrosToFile()<cr>
 nnoremap <silent> <leader>mt :<c-u>call ToggleWindow()<cr>
 nnoremap <silent> <leader>mv :<c-u>call SyncRegistersToVar()<cr>
 nnoremap <silent> <leader>mx :<c-u>call ClearRegisters()<cr>
-nnoremap <silent> <leader>mn :<c-u>call WindowToggleLocked()<cr>
 
 nnoremap <silent> <F12> :update<cr>:source plugin/mnemosyne.vim<cr>
 
-highlight mnemosyne_normal   ctermfg=red      ctermbg=white
-highlight mnemosyne_locked   ctermfg=yellow   ctermbg=blue
-highlight SignColumn         ctermbg=magenta
+highlight mnemosyne_normal   ctermbg=darkblue ctermfg=white
+highlight mnemosyne_locked   ctermbg=darkblue ctermfg=white cterm=reverse
+highlight SignColumn         ctermbg=darkblue
 
 augroup MacroGlobal
 	autocmd!
