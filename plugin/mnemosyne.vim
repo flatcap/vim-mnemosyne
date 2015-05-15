@@ -73,7 +73,7 @@ function! s:create_mappings()
 	augroup END
 endfunction
 
-function! PopulateMacroWindow()
+function! s:generate_window_text()
 	let count_var = len (s:mnemosyne_registers)
 	let count_reg = len (g:mnemosyne_register_list)
 	let count_max = g:mnemosyne_max_macros
@@ -125,7 +125,7 @@ function! s:populate_macro_window()
 	execute 'delmarks!'
 
 	call SyncRegistersToVar()
-	let rows = PopulateMacroWindow()
+	let rows = s:generate_window_text()
 	let row_count = len (rows)
 
 	let win_rows = line('$')
@@ -137,7 +137,7 @@ function! s:populate_macro_window()
 		let r = rows[i]
 
 		let old = getline (i+1)
-		if (old != r.data)
+		if ((old != r.data) || (r.data == ''))
 			call setline (i+1, r.data)
 		endif
 
@@ -240,7 +240,6 @@ function! Repopulate()
 	execute win_user . 'wincmd w'
 	call setpos ('.', cur_user)
 endfunction
-
 
 function! WindowToggleLocked()
 	let line_num = getpos('.')[1]
@@ -651,7 +650,7 @@ call ReadMacrosFromFile()
 nnoremap <silent> <leader>ml :<c-u>call ShowRegisters(1)<cr>
 nnoremap <silent> <leader>mm :<c-u>call MoveRegisters()<cr>
 nnoremap <silent> <leader>mn :<c-u>call WindowToggleLocked()<cr>
-nnoremap <silent> <leader>mp :<c-u>call PopulateMacroWindow()<cr>
+nnoremap <silent> <leader>mp :<c-u>call Repopulate()<cr>
 nnoremap <silent> <leader>mr :<c-u>call ReadMacrosFromFile()<cr>
 nnoremap <silent> <leader>ms :<c-u>call SaveMacrosToFile()<cr>
 nnoremap <silent> <leader>mt :<c-u>call ToggleWindow()<cr>
