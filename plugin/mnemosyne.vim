@@ -73,104 +73,39 @@ function! s:create_mappings()
 	augroup END
 endfunction
 
-function! s:populate_macro_window()
-	let old_paste = &paste
-	setlocal paste
-	execute '%d'
-
-	let named   = len (g:mnemosyne_register_list)
-	let unnamed = g:mnemosyne_max_macros
-
-	let num = len (s:mnemosyne_registers)
-	let comment1 = -1
-	let comment2 = -1
-
-	let buf_num = bufnr('%')
-	execute 'sign unplace * buffer=' . buf_num
-	execute 'delmarks!'
-
-	let reg_count = 0
-	for i in range(num)
-		if (reg_count < named)
-			let letter = g:mnemosyne_register_list[reg_count]
-		elseif (reg_count < unnamed)
-			let letter = '-'
-		else
-			let letter = '!'
-		endif
-
-		if (reg_count == named)
-			let comment1 = i
-		endif
-		if (reg_count == unnamed)
-			let comment2 = i
-		endif
-		let reg_count += 1
-
-		let locked = exists ('s:mnemosyne_registers[i].locked')
-		let line = line('$')
-		let text = s:mnemosyne_registers[i].data
-		call append (line-1, text)
-
-		call s:place_sign (buf_num, line, letter, locked)
-	endfor
-
-	if (comment2 >= 0)
-		call append (comment2, s:window_comments[3])
-		call append (comment2, '')
-	endif
-	if (comment1 >= 0)
-		call append (comment1, s:window_comments[2])
-		call append (comment1, '')
-	endif
-	if (reg_count > 0)
-		call append (0, s:window_comments[1])
-	endif
-	call append (0, '')
-	call append (0, s:window_comments[0])
-
-	let &paste = old_paste
-endfunction
-
 function! PopulateMacroWindow()
-	" let count_var = len(s:mnemosyne_registers)
-	" let count_reg = len (g:mnemosyne_register_list)
-	" let count_max = min ([len (g:mnemosyne_register_list), len(s:mnemosyne_registers)])
+	let count_var = len (s:mnemosyne_registers)
+	let count_reg = len (g:mnemosyne_register_list)
+	let count_max = g:mnemosyne_max_macros
 
-	let named   = len (g:mnemosyne_register_list)
-	let unnamed = g:mnemosyne_max_macros
-
-	let num = len (s:mnemosyne_registers)
-
-	let reg_count = 0
+	let reg_index = 0
 	let rows = []
 
 	let rows += [ { 'data': s:window_comments[0] } ]
 
-	for i in range(num)
-		if (reg_count < named)
-			let letter = g:mnemosyne_register_list[reg_count]
-		elseif (reg_count < unnamed)
+	for i in range(count_var)
+		if (reg_index < count_reg)
+			let letter = g:mnemosyne_register_list[reg_index]
+		elseif (reg_index < count_max)
 			let letter = '-'
 		else
 			let letter = '!'
 		endif
 
-		if (reg_count == named)
+		if (reg_index == count_reg)
 			let rows += [ { 'data': ''                   } ]
 			let rows += [ { 'data': s:window_comments[2] } ]
 		endif
-		if (reg_count == unnamed)
+		if (reg_index == count_max)
 			let rows += [ { 'data': ''                   } ]
 			let rows += [ { 'data': s:window_comments[3] } ]
 		endif
 
-		let reg_count += 1
-		if (reg_count == 1)
+		let reg_index += 1
+		if (reg_index == 1)
 			let rows += [ { 'data': ''                   } ]
 			let rows += [ { 'data': s:window_comments[1] } ]
 		endif
-
 
 		let locked = exists ('s:mnemosyne_registers[i].locked')
 		let text = s:mnemosyne_registers[i].data
@@ -181,15 +116,36 @@ function! PopulateMacroWindow()
 		endif
 	endfor
 
-	unlet i
-	for i in rows
-		let locked = (exists ('i.locked')) ? '*' : ' '
-		if (exists ('i.letter'))
-			echom printf ('  %s%s : %s', i.letter, locked, i.data)
-		else
-			echohl comment
-			echom printf ('%s ', i.data)
-			echohl none
+	return rows
+endfunction
+
+function! s:populate_macro_window()
+	let buf_num = bufnr('%')
+	execute 'sign unplace * buffer=' . buf_num
+	execute 'delmarks!'
+
+	call SyncRegistersToVar()
+	let rows = PopulateMacroWindow()
+	let row_count = len (rows)
+
+	let win_rows = line('$')
+	if (win_rows > row_count)
+		execute row_count . ',$d'
+	endif
+
+	for i in range(row_count)
+		let r = rows[i]
+
+		let old = getline (i+1)
+		if (old != r.data)
+			call setline (i+1, r.data)
+		endif
+
+		let locked = (exists ('r.locked'))
+		let letter = (exists ('r.letter')) ? r.letter : ''
+
+		if (len (letter) > 0)
+			call s:place_sign (buf_num, i+1, letter, locked)
 		endif
 	endfor
 endfunction
@@ -277,6 +233,9 @@ function! Repopulate()
 	let win_user = winnr()
 
 	execute winnum . 'wincmd w'
+	setlocal modifiable
+	call s:populate_macro_window()
+	setlocal nomodifiable
 
 	execute win_user . 'wincmd w'
 	call setpos ('.', cur_user)
