@@ -65,6 +65,8 @@ Syntax for macro window
 Option
 	move pinned macros to end of list
 	don't give the focus to a split window
+	no comments (just signs) in macro window
+	auto-save on vim exit?
 
 to prevent accidents?
 	map q <nop>
@@ -130,4 +132,65 @@ how do I track the locked-ness if:
 	unless I sync the locked-ness after every change
 listen for cursormoved
 	if b:changedtick has changed sync to vars
+
+disable mark setting in macro window
+
+show variable registers in window?
+	e.g. [0-9"]
+	how do I keep the window up-to-date?
+
+show non-managed registers in window?
+	e.g. [k-z]
+	effectively, a large number of locked macros
+	different colour (or just locked colour?)
+	" Non-managed registers
+	affects ShowRegisters() too
+	would need to track the recording of these macros
+	locked => no record, therefore need different colour marker
+		not-managed, but not-locked
+
+distinguish between [RECORDING] and [APPENDING]
+	[REC] oldmacro...
+	[APP] oldmacro...
+	flag on var
+	change sign syntax to rec/app
+
+macro window
+	2Gzt
+	unless help asked for
+
+truncate macro window entries
+	100 chars?
+		configurable?
+	unless in edit mode
+
+------
+
+ReadMacrosFromFile
+	startup
+	user
+	!edit mode
+
+SaveMacrosToFile
+	closedown
+	user
+	!edit mode
+
+OpenWindow
+	user
+
+ToggleWindow
+	user
+
+CloseWindow
+	user
+	!edit mode
+
+ShowRegisters
+	user
+	!edit mode
+
+InterceptQ
+	user
+	!edit mode
 
