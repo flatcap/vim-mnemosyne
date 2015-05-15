@@ -16,7 +16,7 @@ if (!exists ('g:mnemosyne_max_macros'))     | let g:mnemosyne_max_macros     = 1
 if (!exists ('g:mnemosyne_register_list'))  | let g:mnemosyne_register_list  = 'abcdefghij'        | endif
 if (!exists ('g:mnemosyne_modal_window'))   | let g:mnemosyne_modal_window   = 0                   | endif
 if (!exists ('g:mnemosyne_split_vertical')) | let g:mnemosyne_split_vertical = 1                   | endif
-if (!exists ('g:mnemosyne_window_size'))    | let g:mnemosyne_window_size    = 20                  | endif
+if (!exists ('g:mnemosyne_window_size'))    | let g:mnemosyne_window_size    = 40                  | endif
 if (!exists ('g:mnemosyne_focus_window'))   | let g:mnemosyne_focus_window   = 0                   | endif
 
 " if (!exists ('g:mnemosyne_show_help'))      | let g:mnemosyne_show_help      = 1                   | endif
@@ -124,7 +124,7 @@ function! s:populate_macro_window()
 	execute 'sign unplace * buffer=' . buf_num
 	execute 'delmarks!'
 
-	call SyncRegistersToVar()
+	call s:sync_registers_to_var()
 	let rows = s:generate_window_text()
 	let row_count = len (rows)
 
@@ -221,6 +221,58 @@ function! s:get_index (line_num)
 	return index
 endfunction
 
+function! s:sync_registers_to_var()
+	let count_var = len(s:mnemosyne_registers)
+	let count_reg = len (g:mnemosyne_register_list)
+
+	if (count_var < count_reg)
+		" Our variable's empty, create some dummy entries
+		for i in range (count_reg - count_var)
+			let s:mnemosyne_registers += [ { 'data': '' } ]
+		endfor
+	endif
+
+	for i in range (count_reg)
+		let reg = nr2char (char2nr('a')+i)
+		if (exists ('s:mnemosyne_registers[i].locked'))
+			" If the var is locked make sure the register matches
+			call setreg (reg, s:mnemosyne_registers[i].data)
+		else
+			" Copy the register into the var
+			let s:mnemosyne_registers[i].data = getreg (reg)
+		endif
+	endfor
+endfunction
+
+function! s:sync_var_to_registers()
+	let count_max = min ([len (g:mnemosyne_register_list), len(s:mnemosyne_registers)])
+	for i in range (count_max)
+		let reg = nr2char (char2nr('a')+i)
+		let data = s:mnemosyne_registers[i].data
+		call setreg (reg, data)
+	endfor
+endfunction
+
+function! s:move_registers(...)
+	let start = (a:0 > 0) ? a:1 : 0
+
+	call s:sync_registers_to_var()
+
+	call insert (s:mnemosyne_registers, { 'data': '' }, start)
+
+	let num = len(s:mnemosyne_registers) - 1
+	for i in range(start, num)
+		let reg = s:mnemosyne_registers[i]
+		if (exists ('reg.locked'))
+			let tmp = s:mnemosyne_registers[i-1]
+			let s:mnemosyne_registers[i-1] = s:mnemosyne_registers[i]
+			let s:mnemosyne_registers[i] = tmp
+		endif
+	endfor
+
+	call s:sync_var_to_registers()
+endfunction
+
 
 function! Repopulate()
 	let winnum = s:find_window_number()
@@ -273,59 +325,7 @@ function! WindowToggleLocked()
 		call s:place_sign (buf_num, line_num, letter, locked)
 	endif
 
-	call SyncVarToRegisters()
-endfunction
-
-function! SyncRegistersToVar()
-	let count_var = len(s:mnemosyne_registers)
-	let count_reg = len (g:mnemosyne_register_list)
-
-	if (count_var < count_reg)
-		" Our variable's empty, create some dummy entries
-		for i in range (count_reg - count_var)
-			let s:mnemosyne_registers += [ { 'data': '' } ]
-		endfor
-	endif
-
-	for i in range (count_reg)
-		let reg = nr2char (char2nr('a')+i)
-		if (exists ('s:mnemosyne_registers[i].locked'))
-			" If the var is locked make sure the register matches
-			call setreg (reg, s:mnemosyne_registers[i].data)
-		else
-			" Copy the register into the var
-			let s:mnemosyne_registers[i].data = getreg (reg)
-		endif
-	endfor
-endfunction
-
-function! MoveRegisters(...)
-	let start = (a:0 > 0) ? a:1 : 0
-
-	call SyncRegistersToVar()
-
-	call insert (s:mnemosyne_registers, { 'data': '' }, start)
-
-	let num = len(s:mnemosyne_registers) - 1
-	for i in range(start, num)
-		let reg = s:mnemosyne_registers[i]
-		if (exists ('reg.locked'))
-			let tmp = s:mnemosyne_registers[i-1]
-			let s:mnemosyne_registers[i-1] = s:mnemosyne_registers[i]
-			let s:mnemosyne_registers[i] = tmp
-		endif
-	endfor
-
-	call SyncVarToRegisters()
-endfunction
-
-function! SyncVarToRegisters()
-	let count_max = min ([len (g:mnemosyne_register_list), len(s:mnemosyne_registers)])
-	for i in range (count_max)
-		let reg = nr2char (char2nr('a')+i)
-		let data = s:mnemosyne_registers[i].data
-		call setreg (reg, data)
-	endfor
+	call s:sync_var_to_registers()
 endfunction
 
 function! ReadMacrosFromFile (...)
@@ -357,7 +357,8 @@ function! ReadMacrosFromFile (...)
 
 		call add (s:mnemosyne_registers, entry)
 	endfor
-	call SyncVarToRegisters()
+	call s:sync_var_to_registers()
+	call Repopulate()
 endfunction
 
 function! SaveMacrosToFile (...)
@@ -372,7 +373,7 @@ function! SaveMacrosToFile (...)
 		return
 	endif
 
-	call SyncRegistersToVar()
+	call s:sync_registers_to_var()
 
 	let list = copy (s:file_header)
 
@@ -403,7 +404,7 @@ function! OpenWindow(...)
 	let opt_size  = (a:0 > 2) ? a:3 : g:mnemosyne_window_size
 	let opt_focus = (a:0 > 3) ? a:4 : g:mnemosyne_focus_window
 
-	call SyncRegistersToVar()
+	call s:sync_registers_to_var()
 
 	let winnum = s:find_window_number()
 	if (winnum >= 0)
@@ -531,7 +532,7 @@ endfunction
 function! ShowRegisters(...)
 	let show_all = (a:0 > 0) ? a:1 : 0
 
-	call SyncRegistersToVar()
+	call s:sync_registers_to_var()
 
 	let count_var = len(s:mnemosyne_registers)
 	let count_reg = len(g:mnemosyne_register_list)
@@ -569,16 +570,6 @@ function! ShowRegisters(...)
 	endfor
 endfunction
 
-function! ClearRegisters()
-	for i in range (10)
-		call setreg (i, '')
-	endfor
-	for i in range (26)
-		let reg = nr2char (char2nr ('a')+i)
-		call setreg (reg, '')
-	endfor
-endfunction
-
 function! InterceptQ()
 	" q no timeout waiting for register name
 	" q{0-9a-zA-Z"}
@@ -590,7 +581,7 @@ function! InterceptQ()
 		normal! q
 		let val = substitute (getreg(reg), '\=q$', '', '')
 		call setreg (reg, val)
-		call SyncRegistersToVar()
+		call s:sync_registers_to_var()
 		call Repopulate()
 		return
 	endif
@@ -627,7 +618,7 @@ function! InterceptQ()
 
 	" Intercept and track
 	echom 'index: ' . index
-	call MoveRegisters(index)
+	call s:move_registers(index)
 	let s:mnemosyne_recording = c
 	execute 'normal! q' . c
 
@@ -635,6 +626,18 @@ function! InterceptQ()
 	call Repopulate()
 endfunction
 
+
+function! ClearRegisters()
+	for i in range (10)
+		call setreg (i, '')
+	endfor
+	for i in range (26)
+		let reg = nr2char (char2nr ('a')+i)
+		call setreg (reg, '')
+	endfor
+	call s:sync_registers_to_var()
+	call Repopulate()
+endfunction
 
 function! LastEdit()
 	let undo = undotree()
@@ -650,25 +653,23 @@ function! MaintainList()
 endfunction
 
 
-nnoremap <silent> q :<c-u>call InterceptQ()<cr>
-
 call ReadMacrosFromFile()
 
+nnoremap <silent> q :<c-u>call InterceptQ()<cr>
+
 nnoremap <silent> <leader>ml :<c-u>call ShowRegisters(1)<cr>
-nnoremap <silent> <leader>mm :<c-u>call MoveRegisters()<cr>
 nnoremap <silent> <leader>mn :<c-u>call WindowToggleLocked()<cr>
 nnoremap <silent> <leader>mp :<c-u>call Repopulate()<cr>
 nnoremap <silent> <leader>mr :<c-u>call ReadMacrosFromFile()<cr>
 nnoremap <silent> <leader>ms :<c-u>call SaveMacrosToFile()<cr>
 nnoremap <silent> <leader>mt :<c-u>call ToggleWindow()<cr>
-nnoremap <silent> <leader>mv :<c-u>call SyncRegistersToVar()<cr>
 nnoremap <silent> <leader>mx :<c-u>call ClearRegisters()<cr>
 
 nnoremap <silent> <F12> :update<cr>:source plugin/mnemosyne.vim<cr>
 
-highlight mnemosyne_normal   ctermbg=darkblue ctermfg=white
-highlight mnemosyne_locked   ctermbg=darkblue ctermfg=white cterm=reverse
-highlight SignColumn         ctermbg=darkblue
+highlight mnemosyne_normal   ctermbg=17 ctermfg=white
+highlight mnemosyne_locked   ctermbg=17 ctermfg=white cterm=reverse
+highlight SignColumn         ctermbg=17
 
 augroup MacroGlobal
 	autocmd!
