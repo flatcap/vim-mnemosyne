@@ -169,3 +169,29 @@ InterceptQ
 	user
 	!edit mode
 
+----
+
+macro window
+
+view
+	nomodifiable
+	cursors
+	(un)lock
+	refresh
+	help
+	quit (q, <esc>) close window
+	IMPORT external changes
+	move up/down
+
+edit
+	modifiable
+	winleave => quit edit
+	commit -> vars -> reg
+	cursormoved + b:changedtick -> sync to var (EDIT var)
+	edit locked -> duplicate to non-locked
+	buffer-local edit var
+	auto commit var
+		true -> var
+		false -> ditch?
+		ask -> ask
+

@@ -462,7 +462,7 @@ function! OpenWindow(...)
 	let mod_buf = bufnr (s:window_name)
 
 	if (mod_buf < 0)
-		create_window (opt_modal, opt_vert)
+		call s:create_window (opt_modal, opt_vert)
 	else
 		" Recycle existing buffer
 		if (opt_modal)
@@ -697,7 +697,7 @@ nnoremap <silent> <leader>ms :<c-u>call SaveMacrosToFile()<cr>
 nnoremap <silent> <leader>mt :<c-u>call ToggleWindow()<cr>
 nnoremap <silent> <leader>mx :<c-u>call ClearRegisters()<cr>
 
-nnoremap <silent> [26~ :<c-u>call ToggleWindow()<cr>
+nnoremap <silent> [29~ :<c-u>call ToggleWindow()<cr>
 nnoremap <silent> <F12> :update<cr>:source plugin/mnemosyne.vim<cr>
 
 highlight mnemosyne_normal   ctermbg=17 ctermfg=white
