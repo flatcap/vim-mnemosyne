@@ -67,6 +67,7 @@ Option
 	don't give the focus to a split window
 	no comments (just signs) in macro window
 	auto-save on vim exit?
+	vertical option to move the window to the FAR left/right (^WL/^WH)
 
 to prevent accidents?
 	map q <nop>
@@ -163,6 +164,12 @@ truncate macro window entries
 	100 chars?
 		configurable?
 	unless in edit mode
+
+cache the macro window number and buffer
+	let s:macro_buffer = 1   " buffer exists
+	let s:macro_window = -1  " window doesn't exist
+buffer number should be stable
+window number could change if user does ^W^R, etc
 
 ------
 
