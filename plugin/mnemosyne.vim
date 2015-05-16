@@ -64,18 +64,6 @@ function! s:place_sign(buffer, line, char, locked)
 	execute 'sign place ' . a:line . ' name=' . name . ' line=' . a:line . ' buffer=' . a:buffer
 endfunction
 
-function! s:create_mappings()
-	nnoremap <buffer> <silent> q :<c-u>call CloseWindow()<cr>
-	nnoremap <buffer> <silent> \p :<c-u>call WindowToggleLocked()<cr>
-	nnoremap <buffer> <silent> `- /^" Unnamed/+1<cr>
-	nnoremap <buffer> <silent> `! /^" Will/+1<cr>
-
-	augroup MacroWindow
-		autocmd!
-		autocmd BufWinLeave <buffer> let b:cursor = getpos ('.')
-	augroup END
-endfunction
-
 function! s:generate_window_text()
 	let count_var = len (s:mnemosyne_registers)
 	let count_reg = len (g:mnemosyne_register_list)
@@ -331,6 +319,40 @@ function! s:repopulate()
 endfunction
 
 
+function! s:create_window(modal, vertical)
+	if (a:modal)
+		" Modal Window
+		execute 'silent enew'
+		execute 'silent file ' . s:window_name
+	else
+		" Split Window
+		let vert = (a:vertical) ? 'vertical' : ''
+		execute 'silent ' . vert . ' new'
+		execute 'silent file ' . s:window_name
+	endif
+
+	setlocal buftype=nofile
+	setlocal bufhidden=hide
+	setlocal nobuflisted
+	setlocal noswapfile
+	setlocal filetype=vim
+
+	nnoremap <buffer> <silent> q :<c-u>call CloseWindow()<cr>
+	nnoremap <buffer> <silent> \p :<c-u>call WindowToggleLocked()<cr>
+	nnoremap <buffer> <silent> `- /^" Unnamed/+1<cr>
+	nnoremap <buffer> <silent> `! /^" Will/+1<cr>
+
+	augroup MacroWindow
+		autocmd!
+		autocmd BufWinLeave <buffer> let b:cursor = getpos ('.')
+	augroup END
+
+	execute 'syntax match m_recording "^\[' . s:record_replace . '\]"'
+	execute 'syntax match m_recording "^\[' . s:record_append  . '\]"'
+	highlight m_recording ctermfg=red
+endfunction
+
+
 function! WindowToggleLocked()
 	let line_num = getpos('.')[1]
 	let index = s:get_index (line_num)
@@ -439,33 +461,28 @@ function! OpenWindow(...)
 
 	let mod_buf = bufnr (s:window_name)
 
-	if (opt_modal)
-		" Modal Window
-		if (mod_buf < 0)
-			" Create new buffer
-			execute 'silent enew'
-			execute 'silent file ' . s:window_name
-			call s:create_mappings()
+	if (mod_buf < 0)
+		create_window (opt_modal, opt_vert)
+	else
+		" Recycle existing buffer
+		if (opt_modal)
+			" Modal Window
+			execute 'silent ' . mod_buf . 'buffer'
 		else
-			" Recycle existing buffer
+			" Split Window
+			let vertical = (opt_vert) ? 'vertical' : ''
+			execute 'silent ' . vertical . ' split'
 			execute 'silent ' . mod_buf . 'buffer'
 		endif
+	endif
 
+	if (opt_modal)
+		" Modal Window
 		let w:return_buffer = buf_user
 		let w:return_cursor = cur_user
 	else
 		" Split Window
 		let vertical = (opt_vert) ? 'vertical' : ''
-		if (mod_buf < 0)
-			" Create new buffer
-			execute 'silent ' . vertical . ' new'
-			execute 'silent file ' . s:window_name
-			call s:create_mappings()
-		else
-			" Recycle existing buffer
-			execute 'silent ' . vertical . ' split'
-			execute 'silent ' . mod_buf . 'buffer'
-		endif
 
 		if (opt_size > 0)
 			if (opt_vert)
@@ -479,22 +496,12 @@ function! OpenWindow(...)
 		unlet! w:return_cursor
 	endif
 
-	setlocal buftype=nofile
-	setlocal bufhidden=hide
-	setlocal nobuflisted
-	setlocal noswapfile
-	setlocal filetype=vim
-
-	execute 'syntax match m_recording "^\[' . s:record_replace . '\]"'
-	execute 'syntax match m_recording "^\[' . s:record_append  . '\]"'
-	highlight m_recording ctermfg=red
-
 	call s:populate_macro_window()
 
 	if (exists ('b:cursor'))
 		call setpos ('.', b:cursor)
 	else
-		normal 1G
+		normal 3Gzt
 	endif
 
 	if (!opt_focus)
@@ -690,6 +697,7 @@ nnoremap <silent> <leader>ms :<c-u>call SaveMacrosToFile()<cr>
 nnoremap <silent> <leader>mt :<c-u>call ToggleWindow()<cr>
 nnoremap <silent> <leader>mx :<c-u>call ClearRegisters()<cr>
 
+nnoremap <silent> [26~ :<c-u>call ToggleWindow()<cr>
 nnoremap <silent> <F12> :update<cr>:source plugin/mnemosyne.vim<cr>
 
 highlight mnemosyne_normal   ctermbg=17 ctermfg=white
