@@ -1,15 +1,4 @@
-
-Read config from file on:
-	plugin start
-	autocmd VimEnter
-	ReadConfig()
-
-Save macros to file on:
-	SaveConfig()
-	autocmd QuitPre
-
 Save macros to memory on:
-	SaveToMemory()
 	autocmd WinLeave
 	keypress q, etc
 
@@ -59,8 +48,7 @@ How can multiple running copies of vim coordinate?
 	need to delete the buffer after closing to prevent swapfile collision
 
 Syntax for macro window
-	^[-a-zA-Z]\**	.*
-	match regex to register config
+	highlight locked registers?
 
 Option
 	move pinned macros to end of list
@@ -68,14 +56,6 @@ Option
 	no comments (just signs) in macro window
 	auto-save on vim exit?
 	vertical option to move the window to the FAR left/right (^WL/^WH)
-
-to prevent accidents?
-	map q <nop>
-no, need to trap it so I know when a recording finishes
-
-need to map
-	qa startmacro() rotate first
-	qA startmacro() no rotate
 
 don't rotate empty registers?
 
@@ -99,16 +79,10 @@ use comments for naming macros
 
 de-dupe macros (make it easier to manage)
 
-on 'start recording' update macro window to [RECORDING]
-	change sign too?
+on 'start recording' change sign too?
 
 have a q-<esc> mapping to abort a recording?
 	would interfere with q-getchar()
-
-speed up window population
-	create first (including comments)
-	then create window
-	populate
 
 Intercept Q needs to allow any register in our list
 and effect the correct "move"
@@ -149,12 +123,6 @@ show non-managed registers in window?
 	would need to track the recording of these macros
 	locked => no record, therefore need different colour marker
 		not-managed, but not-locked
-
-distinguish between [RECORDING] and [APPENDING]
-	[REC] oldmacro...
-	[APP] oldmacro...
-	flag on var
-	change sign syntax to rec/app
 
 macro window
 	2Gzt
