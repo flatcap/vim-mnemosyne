@@ -23,8 +23,8 @@ if (!exists ('g:mnemosyne_focus_window'))   | let g:mnemosyne_focus_window   = 0
 
 let s:window_name = '__mnemosyne__'
 
-let s:record_replace = '[RECORDING]'
-let s:record_append  = '[APPENDING]'
+let s:record_replace = 'REC'
+let s:record_append  = 'APP'
 
 let s:file_header = [
 	\ '" Mnemosyne.vim - Mistress of Macros',
@@ -112,6 +112,10 @@ function! s:generate_window_text()
 
 		let locked = exists ('s:mnemosyne_registers[i].locked')
 		let text = s:mnemosyne_registers[i].data
+		if (exists ('s:mnemosyne_registers[i].recording'))
+			let text = '[' . s:mnemosyne_registers[i].recording . '] ' . text
+		endif
+
 		if (locked)
 			let rows += [ { 'letter': letter, 'locked': locked, 'data': text } ]
 		else
@@ -481,8 +485,8 @@ function! OpenWindow(...)
 	setlocal noswapfile
 	setlocal filetype=vim
 
-	execute 'syntax match m_recording "^' . escape (s:record_replace, '[]') . '$"'
-	execute 'syntax match m_recording "^' . escape (s:record_append,  '[]') . '$"'
+	execute 'syntax match m_recording "^\[' . s:record_replace . '\]"'
+	execute 'syntax match m_recording "^\[' . s:record_append  . '\]"'
 	highlight m_recording ctermfg=red
 
 	call s:populate_macro_window()
@@ -590,6 +594,8 @@ function! InterceptQ()
 	if (s:mnemosyne_recording != '')
 		let reg = tolower (s:mnemosyne_recording)
 		let s:mnemosyne_recording = ''
+		let index = stridx (g:mnemosyne_register_list, tolower(reg))
+		unlet! s:mnemosyne_registers[index].recording
 
 		normal! q
 		let val = substitute (getreg(reg), '\=q$', '', '')
@@ -611,7 +617,7 @@ function! InterceptQ()
 		return
 	endif
 
-	let index = stridx (g:mnemosyne_register_list, c)
+	let index = stridx (g:mnemosyne_register_list, tolower(c))
 	if (index < 0)
 		if (c =~ '[0-9a-zA-Z"]')
 			" Delegate and track
@@ -630,15 +636,18 @@ function! InterceptQ()
 	endif
 
 	" Intercept and track
-	echom 'index: ' . index
-	call s:move_registers(index)
+	if (c =~# '[a-z]')
+		call s:move_registers(index)
+	endif
 	let s:mnemosyne_recording = c
 	execute 'normal! q' . c
 
 	if (c =~# '[A-Z]')
-		call setreg (c, s:record_replace)
+		echom 'APPEND'
+		let s:mnemosyne_registers[index].recording = s:record_append
 	else
-		call setreg (c, s:record_replace)
+		echom 'REPLACE'
+		let s:mnemosyne_registers[index].recording = s:record_replace
 	endif
 	call s:repopulate()
 endfunction
