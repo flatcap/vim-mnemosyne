@@ -261,8 +261,12 @@ function! s:move_registers(...)
 	call insert (s:mnemosyne_registers, { 'data': '' }, start)
 
 	let num = len(s:mnemosyne_registers) - 1
-	for i in range(start, num)
+	for i in range(start+1, num)
 		let reg = s:mnemosyne_registers[i]
+		if (reg.data == '')
+			unlet s:mnemosyne_registers[i]
+			break
+		endif
 		if (exists ('reg.locked'))
 			let tmp = s:mnemosyne_registers[i-1]
 			let s:mnemosyne_registers[i-1] = s:mnemosyne_registers[i]
@@ -281,16 +285,17 @@ function! s:var_set_locked (index, value)
 		return -1
 	endif
 
-	if (value == -1)
+	let val = a:value
+	if (val == -1)
 		" Toggle the locked value
-		let value = !exists ('s:mnemosyne_registers[index].locked')
+		let val = !exists ('s:mnemosyne_registers[a:index].locked')
 	endif
 
-	if (value == 1)
-		let s:mnemosyne_registers[index].locked = 1
+	if (val == 1)
+		let s:mnemosyne_registers[a:index].locked = 1
 		let locked = 1
-	elseif (value == 0)
-		unlet! s:mnemosyne_registers[index].locked
+	elseif (val == 0)
+		unlet! s:mnemosyne_registers[a:index].locked
 		let locked = 0
 	else
 		return -1
@@ -318,7 +323,6 @@ function! s:repopulate()
 	call setpos ('.', cur_user)
 endfunction
 
-
 function! s:create_window(modal, vertical)
 	if (a:modal)
 		" Modal Window
@@ -334,8 +338,8 @@ function! s:create_window(modal, vertical)
 	setlocal buftype=nofile
 	setlocal bufhidden=hide
 	setlocal nobuflisted
+	setlocal nomodifiable
 	setlocal noswapfile
-	setlocal filetype=vim
 
 	nnoremap <buffer> <silent> q :<c-u>call CloseWindow()<cr>
 	nnoremap <buffer> <silent> \p :<c-u>call WindowToggleLocked()<cr>
@@ -346,7 +350,10 @@ function! s:create_window(modal, vertical)
 		autocmd!
 		autocmd BufWinLeave <buffer> let b:cursor = getpos ('.')
 	augroup END
+endfunction
 
+function! s:set_syntax()
+	syntax match VimComment '^".*'
 	execute 'syntax match m_recording "^\[' . s:record_replace . '\]"'
 	execute 'syntax match m_recording "^\[' . s:record_append  . '\]"'
 	highlight m_recording ctermfg=red
@@ -437,7 +444,6 @@ function! SaveMacrosToFile (...)
 	call writefile (list, file)
 endfunction
 
-
 function! OpenWindow(...)
 	let opt_modal = (a:0 > 0) ? a:1 : g:mnemosyne_modal_window
 	let opt_vert  = (a:0 > 1) ? a:2 : g:mnemosyne_split_vertical
@@ -475,6 +481,7 @@ function! OpenWindow(...)
 			execute 'silent ' . mod_buf . 'buffer'
 		endif
 	endif
+	call s:set_syntax()
 
 	if (opt_modal)
 		" Modal Window
@@ -650,10 +657,8 @@ function! InterceptQ()
 	execute 'normal! q' . c
 
 	if (c =~# '[A-Z]')
-		echom 'APPEND'
 		let s:mnemosyne_registers[index].recording = s:record_append
 	else
-		echom 'REPLACE'
 		let s:mnemosyne_registers[index].recording = s:record_replace
 	endif
 	call s:repopulate()

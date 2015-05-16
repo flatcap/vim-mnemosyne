@@ -52,7 +52,6 @@ Syntax for macro window
 
 Option
 	move pinned macros to end of list
-	don't give the focus to a split window
 	no comments (just signs) in macro window
 	auto-save on vim exit?
 	vertical option to move the window to the FAR left/right (^WL/^WH)
