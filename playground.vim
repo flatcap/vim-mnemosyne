@@ -42,7 +42,7 @@ endfunction
 
 function! TogglePin()
 	setlocal modifiable
-	let line = getline('.')
+	let line = getline ('.')
 	if (line =~ '^\i\*	')
 		let line = substitute (line, '\*', '', '')
 	else
@@ -68,8 +68,8 @@ function! Playground()
 	execute 'vertical new ' . s:window_name
 
 	call setline (1, '" Mnemosyne - <F1> for help')
-	for i in range(20)
-		let char = nr2char (char2nr('a')+i)
+	for i in range (20)
+		let char = nr2char (char2nr ('a')+i)
 		let msg = char . '	This is line ' . i
 		execute 'normal! o' . msg
 	endfor

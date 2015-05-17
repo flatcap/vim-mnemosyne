@@ -44,7 +44,7 @@ let s:highlight_locked = 'mnemosyne_locked'
 let s:mnemosyne_recording = ''
 let s:mnemosyne_registers = []
 
-function! s:place_sign(buffer, line, char, locked)
+function! s:place_sign (buffer, line, char, locked)
 	call setpos ("'" . a:char, [a:buffer, a:line, 1, 0])
 
 	if (a:locked)
@@ -74,7 +74,7 @@ function! s:generate_window_text()
 
 	let rows += [ { 'data': s:window_comments[0] } ]
 
-	for i in range(count_var)
+	for i in range (count_var)
 		if (reg_index < count_reg)
 			let letter = g:mnemosyne_register_list[reg_index]
 		elseif (reg_index < count_max)
@@ -115,7 +115,7 @@ function! s:generate_window_text()
 endfunction
 
 function! s:populate_macro_window()
-	let buf_num = bufnr('%')
+	let buf_num = bufnr ('%')
 	execute 'sign unplace * buffer=' . buf_num
 	execute 'delmarks!'
 
@@ -125,12 +125,12 @@ function! s:populate_macro_window()
 	let old_mod = &l:modifiable
 	setlocal modifiable
 
-	let win_rows = line('$')
+	let win_rows = line ('$')
 	if (win_rows > row_count)
 		execute row_count . ',$d'
 	endif
 
-	for i in range(row_count)
+	for i in range (row_count)
 		let r = rows[i]
 
 		let old = getline (i+1)
@@ -152,7 +152,7 @@ endfunction
 function! s:find_window_number()
 	let win_max = winnr ('$')
 	for i in range (1, win_max)
-		if (bufname (winbufnr (i)) == s:window_name)
+		if (bufname (winbufnr(i)) == s:window_name)
 			return i
 		endif
 	endfor
@@ -180,14 +180,14 @@ function! s:is_window_comment (str)
 	return 0
 endfunction
 
-function! s:parse_header(list)
+function! s:parse_header (list)
 	let locked = []
 	" Scan at more the first 4 lines
-	let end = min ([4, len(a:list)-1])
+	let end = min ([4, len (a:list)-1])
 
-	for i in range(end, 1, -1)
+	for i in range (end, 1, -1)
 		let line = a:list[i]
-		if (s:is_file_comment(line))
+		if (s:is_file_comment (line))
 			unlet a:list[i]
 		endif
 
@@ -222,7 +222,7 @@ function! s:get_index (line_num)
 endfunction
 
 function! s:sync_registers_to_var()
-	let count_var = len(s:mnemosyne_registers)
+	let count_var = len (s:mnemosyne_registers)
 	let count_reg = len (g:mnemosyne_register_list)
 
 	if (count_var < count_reg)
@@ -233,7 +233,7 @@ function! s:sync_registers_to_var()
 	endif
 
 	for i in range (count_reg)
-		let reg = nr2char (char2nr('a')+i)
+		let reg = nr2char (char2nr ('a')+i)
 		if (exists ('s:mnemosyne_registers[i].locked'))
 			" If the var is locked make sure the register matches
 			call setreg (reg, s:mnemosyne_registers[i].data)
@@ -245,23 +245,23 @@ function! s:sync_registers_to_var()
 endfunction
 
 function! s:sync_var_to_registers()
-	let count_max = min ([len (g:mnemosyne_register_list), len(s:mnemosyne_registers)])
+	let count_max = min ([len (g:mnemosyne_register_list), len (s:mnemosyne_registers)])
 	for i in range (count_max)
-		let reg = nr2char (char2nr('a')+i)
+		let reg = nr2char (char2nr ('a')+i)
 		let data = s:mnemosyne_registers[i].data
 		call setreg (reg, data)
 	endfor
 endfunction
 
-function! s:move_registers(...)
+function! s:move_registers (...)
 	let start = (a:0 > 0) ? a:1 : 0
 
 	call s:sync_registers_to_var()
 
 	call insert (s:mnemosyne_registers, { 'data': '' }, start)
 
-	let num = len(s:mnemosyne_registers) - 1
-	for i in range(start+1, num)
+	let num = len (s:mnemosyne_registers) - 1
+	for i in range (start+1, num)
 		let reg = s:mnemosyne_registers[i]
 		if (reg.data == '')
 			unlet s:mnemosyne_registers[i]
@@ -311,7 +311,7 @@ function! s:repopulate()
 	endif
 
 	" Save the user's current location
-	let cur_user = getpos('.')
+	let cur_user = getpos ('.')
 	let win_user = winnr()
 
 	call s:sync_registers_to_var()
@@ -323,7 +323,7 @@ function! s:repopulate()
 	call setpos ('.', cur_user)
 endfunction
 
-function! s:create_window(modal, vertical)
+function! s:create_window (modal, vertical)
 	if (a:modal)
 		" Modal Window
 		execute 'silent enew'
@@ -361,7 +361,7 @@ endfunction
 
 
 function! WindowToggleLocked()
-	let line_num = getpos('.')[1]
+	let line_num = getpos ('.')[1]
 	let index = s:get_index (line_num)
 	if (index < 0)
 		return
@@ -423,12 +423,12 @@ function! SaveMacrosToFile (...)
 
 	let list = copy (s:file_header)
 
-	let count_var = len(s:mnemosyne_registers)
+	let count_var = len (s:mnemosyne_registers)
 	let count_reg = len (g:mnemosyne_register_list)
 	let count_max = min ([count_var, g:mnemosyne_max_macros])
 
 	let locked = []
-	for i in range(count_max)
+	for i in range (count_max)
 		let reg = s:mnemosyne_registers[i]
 		let list += [ reg.data ]
 		if (exists ('reg.locked'))
@@ -444,7 +444,7 @@ function! SaveMacrosToFile (...)
 	call writefile (list, file)
 endfunction
 
-function! OpenWindow(...)
+function! OpenWindow (...)
 	let opt_modal = (a:0 > 0) ? a:1 : g:mnemosyne_modal_window
 	let opt_vert  = (a:0 > 1) ? a:2 : g:mnemosyne_split_vertical
 	let opt_size  = (a:0 > 2) ? a:3 : g:mnemosyne_window_size
@@ -462,7 +462,7 @@ function! OpenWindow(...)
 
 	" Save the user's current location
 	let buf_user = bufnr ('%')
-	let cur_user = getpos('.')
+	let cur_user = getpos ('.')
 	let win_user = winnr()
 
 	let mod_buf = bufnr (s:window_name)
@@ -527,7 +527,7 @@ function! CloseWindow()
 	"XXX sync window to var
 	"XXX sync var to reg
 
-	let cur_user = getpos('.')
+	let cur_user = getpos ('.')
 	let win_user = winnr()
 
 	if (win_macro != win_user)
@@ -560,13 +560,13 @@ function! ToggleWindow()
 	endif
 endfunction
 
-function! ShowRegisters(...)
+function! ShowRegisters (...)
 	let show_all = (a:0 > 0) ? a:1 : 0
 
 	call s:sync_registers_to_var()
 
-	let count_var = len(s:mnemosyne_registers)
-	let count_reg = len(g:mnemosyne_register_list)
+	let count_var = len (s:mnemosyne_registers)
+	let count_reg = len (g:mnemosyne_register_list)
 
 	if (!count_var)
 		return
@@ -582,7 +582,7 @@ function! ShowRegisters(...)
 	endif
 	echohl None
 
-	for i in range(count_display)
+	for i in range (count_display)
 		if (i < count_reg)
 			let letter = g:mnemosyne_register_list[i]
 		elseif (i < g:mnemosyne_max_macros)
@@ -591,9 +591,9 @@ function! ShowRegisters(...)
 			let letter = '!'
 		endif
 		let contents = s:mnemosyne_registers[i].data
-		let contents = substitute (contents, nr2char(9), '^I', 'g')
-		let contents = substitute (contents, nr2char(10), '^J', 'g')
-		let contents = substitute (contents, nr2char(13), '^M', 'g')
+		let contents = substitute (contents, nr2char (9),  '^I', 'g')
+		let contents = substitute (contents, nr2char (10), '^J', 'g')
+		let contents = substitute (contents, nr2char (13), '^M', 'g')
 		let contents = substitute (contents, ' ', '␣', 'g')
 		let contents = substitute (contents, '\%' . (&columns - 20) . 'v.*', ' ⋯', '')
 		let flags = (exists ('s:mnemosyne_registers[i].locked')) ? '*' : ' '
@@ -608,11 +608,11 @@ function! InterceptQ()
 	if (s:mnemosyne_recording != '')
 		let reg = tolower (s:mnemosyne_recording)
 		let s:mnemosyne_recording = ''
-		let index = stridx (g:mnemosyne_register_list, tolower(reg))
+		let index = stridx (g:mnemosyne_register_list, tolower (reg))
 		unlet! s:mnemosyne_registers[index].recording
 
 		normal! q
-		let val = substitute (getreg(reg), '\=q$', '', '')
+		let val = substitute (getreg (reg), '\=q$', '', '')
 		call setreg (reg, val)
 		call s:sync_registers_to_var()
 		call s:repopulate()
@@ -620,7 +620,7 @@ function! InterceptQ()
 	endif
 
 	let c = getchar()
-	if ((type(c) == type('')) || (c >= 128))
+	if ((type(c) == type ('')) || (c >= 128))
 		return
 	endif
 
@@ -651,7 +651,7 @@ function! InterceptQ()
 
 	" Intercept and track
 	if (c =~# '[a-z]')
-		call s:move_registers(index)
+		call s:move_registers (index)
 	endif
 	let s:mnemosyne_recording = c
 	execute 'normal! q' . c
