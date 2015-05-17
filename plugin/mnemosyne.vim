@@ -11,15 +11,15 @@
 " let g:loaded_mnemosyne = 1
 
 " Set some default values
-if (!exists ('g:mnemosyne_macro_file'))     | let g:mnemosyne_macro_file     = '~/.vim/macros.vim' | endif
-if (!exists ('g:mnemosyne_max_macros'))     | let g:mnemosyne_max_macros     = 15                  | endif
-if (!exists ('g:mnemosyne_register_list'))  | let g:mnemosyne_register_list  = 'abcdefghij'        | endif
-if (!exists ('g:mnemosyne_modal_window'))   | let g:mnemosyne_modal_window   = 0                   | endif
-if (!exists ('g:mnemosyne_split_vertical')) | let g:mnemosyne_split_vertical = 1                   | endif
-if (!exists ('g:mnemosyne_window_size'))    | let g:mnemosyne_window_size    = 20                  | endif
-if (!exists ('g:mnemosyne_focus_window'))   | let g:mnemosyne_focus_window   = 0                   | endif
+let g:mnemosyne_macro_file     = get (g:, 'mnemosyne_macro_file',     '~/.vim/macros.vim')
+let g:mnemosyne_max_macros     = get (g:, 'mnemosyne_max_macros',     15)
+let g:mnemosyne_register_list  = get (g:, 'mnemosyne_register_list',  'abcdefghij')
+let g:mnemosyne_modal_window   = get (g:, 'mnemosyne_modal_window',   0)
+let g:mnemosyne_split_vertical = get (g:, 'mnemosyne_split_vertical', 1)
+let g:mnemosyne_window_size    = get (g:, 'mnemosyne_window_size',    20)
+let g:mnemosyne_focus_window   = get (g:, 'mnemosyne_focus_window',   0)
 
-" if (!exists ('g:mnemosyne_show_help'))      | let g:mnemosyne_show_help      = 1                   | endif
+" let g:mnemosyne_show_help = get (g:, 'mnemosyne_show_help', 1)
 
 let s:window_name = '__mnemosyne__'
 
@@ -508,7 +508,7 @@ function! OpenWindow(...)
 	if (exists ('b:cursor'))
 		call setpos ('.', b:cursor)
 	else
-		normal 3Gzt
+		normal 3G
 	endif
 
 	if (!opt_focus)
