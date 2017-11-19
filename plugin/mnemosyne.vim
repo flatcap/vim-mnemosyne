@@ -705,9 +705,9 @@ nnoremap <silent> <leader>mx :<c-u>call ClearRegisters()<cr>
 nnoremap <silent> [29~ :<c-u>call ToggleWindow()<cr>
 nnoremap <silent> <F12> :update<cr>:source plugin/mnemosyne.vim<cr>
 
-highlight mnemosyne_normal   ctermbg=17 ctermfg=white
-highlight mnemosyne_locked   ctermbg=17 ctermfg=white cterm=reverse
-highlight SignColumn         ctermbg=17
+highlight mnemosyne_normal   guibg=#00005f ctermbg=17 guifg=white ctermfg=white
+highlight mnemosyne_locked   guibg=#00005f ctermbg=17 guifg=white ctermfg=white cterm=reverse
+highlight SignColumn         guibg=#00005f ctermbg=17
 
 augroup MacroGlobal
 	autocmd!
