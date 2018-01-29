@@ -609,7 +609,10 @@ function! InterceptQ()
 		let reg = tolower (s:mnemosyne_recording)
 		let s:mnemosyne_recording = ''
 		let index = stridx (g:mnemosyne_register_list, tolower (reg))
-		unlet! s:mnemosyne_registers[index].recording
+		try
+			unlet! s:mnemosyne_registers[index].recording
+		catch
+		endtry
 
 		normal! q
 		let val = substitute (getreg (reg), '\=q$', '', '')
